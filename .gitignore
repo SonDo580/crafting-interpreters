@@ -1,0 +1,7 @@
+.vscode
+
+# Ignore Java class file
+**/*.class
+
+# Ignore C executable files (I used .o extension for this purpose)
+**/*.o
