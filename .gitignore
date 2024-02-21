@@ -5,3 +5,6 @@
 
 # Ignore C executable files (I used .o extension for this purpose)
 **/*.o
+
+# Ignore sample Lox files (this is for testing the interpreters)
+lox_samples
