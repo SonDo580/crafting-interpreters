@@ -112,14 +112,18 @@ class Scanner {
                 addToken(match('=') ? GREATER_EQUAL : GREATER);
                 break;
 
-            // Division operator or comment start
             case '/':
                 if (match('/')) {
+                    // Inline comment
                     // keep consuming characters until the end of the line
                     while (peek() != '\n' && !isAtEnd()) {
                         advance();
                     }
+                } else if (match('*')) {
+                    // Block comment
+                    blockComment();
                 } else {
+                    // Division operator
                     addToken(SLASH);
                 }
                 break;
@@ -200,6 +204,32 @@ class Scanner {
         tokens.add(new Token(type, lexeme, literal, line));
     }
 
+    /* Handle block comments */
+    private void blockComment() {
+        // Keep consuming character until a star (*) is found
+        while (peek() != '*' && !isAtEnd()) {
+            if (peek() == '\n') {
+                line++;
+            }
+            advance();
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated block comment.");
+        }
+
+        // Comsume the star
+        advance();
+
+        // Check for closing slash
+        if (peek() != '/') {
+            blockComment();
+        } else {
+            // Consume closing slash
+            advance();
+        }
+    }
+
     /* Handle string literals */
     private void string() {
         // Keep consuming characters until the closing quote is found
@@ -245,7 +275,7 @@ class Scanner {
         addToken(NUMBER, value);
     }
 
-    // Handle reserved keywords and identifiers
+    /* Handle reserved keywords and identifiers */
     private void keyword_identifier() {
         while (isAlphaNumeric(peek())) {
             advance();

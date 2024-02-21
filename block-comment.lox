@@ -1,0 +1,18 @@
+/* Block comment 1 */
+/*Block 
+comment 2 */
+/** Block x * y = 1
+comment 3*/
+
+/* Block 
+comment 4 */ class Foo /* Block comment 5*/ {
+  init(a, b) {
+    print "init"; // expect: init
+    this.a = a;
+    this.b = b;
+  }
+}
+
+var foo = Foo(1, 2);
+print foo.a; // expect: 1
+print foo.b; // expect: 2

@@ -1,4 +1,3 @@
-# Crafting Interpreters
+## Challenge 4.4:
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+Add support to Lox’s scanner for C-style /\* ... \*/ block comments. Make sure to handle newlines in them. Consider allowing them to nest. Is adding support for nesting more work than you expected? Why?
