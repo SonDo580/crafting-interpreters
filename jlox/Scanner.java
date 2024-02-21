@@ -245,7 +245,7 @@ class Scanner {
         addToken(NUMBER, value);
     }
 
-    // Handle reserved keywords and identifiers
+    /* Handle reserved keywords and identifiers */
     private void keyword_identifier() {
         while (isAlphaNumeric(peek())) {
             advance();
