@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import static jlox.TokenType.*;
 
@@ -121,7 +122,8 @@ class Scanner {
                     }
                 } else if (match('*')) {
                     // Block comment
-                    blockComment();
+                    // blockComment();
+                    nestedBlockComment();
                 } else {
                     // Division operator
                     addToken(SLASH);
@@ -221,12 +223,40 @@ class Scanner {
         // Comsume the star
         advance();
 
-        // Check for closing slash
         if (peek() != '/') {
+            // The block continues
             blockComment();
         } else {
             // Consume closing slash
             advance();
+        }
+    }
+
+    /* Handle nested block comments */
+    private void nestedBlockComment() {
+        int nestedLevel = 1;
+
+        while (nestedLevel > 0 && !isAtEnd()) {
+            if (peek() == '*' && peekNext() == '/') {
+                // A block closing
+                advance(); // consume the '*'
+                advance(); // consume the '/'
+                nestedLevel--; // exit current block
+            } else if (peek() == '/' && peekNext() == '*') {
+                // A block opening
+                advance(); // consume the '/'
+                advance(); // consume the '*'
+                nestedLevel++; // enter a new block
+            } else {
+                if (peek() == '\n') {
+                    line++;
+                }
+                advance();
+            }
+        }
+
+        if (nestedLevel > 0) {
+            Lox.error(line, "Unterminated block comment.");
         }
     }
 

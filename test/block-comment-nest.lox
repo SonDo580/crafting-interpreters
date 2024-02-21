@@ -1,5 +1,4 @@
 /* level 1 /* level 2 /* level 3 */ level 2*/ level 1 */
-/* level 1 /* level 2 /* (unterminated) level 2*/ level 1 */
 
 class Foo {
   init(a, b) {
@@ -9,6 +8,4 @@ class Foo {
   }
 }
 
-var foo = Foo(1, 2);
-print foo.a; // expect: 1
-print foo.b; // expect: 2
+/* level 1 /* level 2 /* (unterminated) level 2*/ level 1 */
