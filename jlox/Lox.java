@@ -21,7 +21,7 @@ public class Lox {
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
             System.out.println("Usage: java <Lox.class path> <Lox program>");
-            System.exit(64);
+            System.exit(64); // command-line usage error
         } else if (args.length == 1) {
             runFile(args[0]);
         } else {
@@ -35,7 +35,7 @@ public class Lox {
         run(new String(bytes, Charset.defaultCharset()));
 
         if (hadError) {
-            System.exit(65);
+            System.exit(65); // input data error
         }
     }
 

@@ -6,18 +6,20 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Use this to generate the syntax tree classes
+ * Tool to generate the syntax tree classes
  */
 public class GenerateAst {
-    private static int level = 0; // current indentation level of output
+    private static int level = 0; // current indentation level of generated code
     private static PrintWriter writer;
 
     public static void main(String[] args) throws IOException {
         if (args.length != 1) {
             System.out.println("Usage: java <GenerateAst.class path> <output directory>");
-            System.exit(64);
+            System.exit(64); // command-line usage error
         }
         String outputDir = args[0];
+
+        // The abstract syntax tree
         defineAst(outputDir, "Expr", Arrays.asList(
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
@@ -31,19 +33,17 @@ public class GenerateAst {
 
         printLine("package jlox;");
         printLine();
-        printLine("import java.util.List;");
-        printLine();
         printLine("abstract class " + baseName + " {");
         level++;
 
         // The Visitor interface
         defineVisitor(baseName, types);
 
-        // The abstract accept() method
+        // The abstract 'accept' method
         printLine();
         printLine("abstract <R> R accept(Visitor<R> visitor);");
 
-        // Define the AST classes
+        // The AST classes
         for (String type : types) {
             String className = type.split(":")[0].trim();
             String fields = type.split(":")[1].trim();
@@ -74,8 +74,7 @@ public class GenerateAst {
         printLine("}");
 
         // Visitor pattern
-        // Each subclass implements 'accept'
-        // and calls the right visit method
+        // Implements 'accept' and calls the right visit method
         printLine();
         printLine("@Override");
         printLine("<R> R accept(Visitor<R> visitor) {");
@@ -98,6 +97,7 @@ public class GenerateAst {
         printLine("interface Visitor<R> {");
         level++;
 
+        // Generate a 'visit' method for each type of AST node
         for (String type : types) {
             String typeName = type.split(":")[0].trim();
             printLine("R visit" + typeName + baseName + "(" + typeName + " " + baseName.toLowerCase() + ");");
