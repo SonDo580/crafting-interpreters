@@ -31,7 +31,7 @@ public class GenerateAst {
         String path = outputDir + '/' + baseName + ".java";
         writer = new PrintWriter(path, "UTF-8");
 
-        printLine("package jlox;");
+        printLine("package jlox.lox;");
         printLine();
         printLine("abstract class " + baseName + " {");
         level++;
