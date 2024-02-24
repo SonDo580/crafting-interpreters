@@ -1,8 +1,15 @@
-# Crafting Interpreters
+# Challenge 5.3
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+In reverse Polish notation (RPN), the operands to an arithmetic operator are both placed before the operator, so `1 + 2` becomes `1 2 +`. Evaluation proceeds from left to right. Numbers are pushed onto an implicit stack. An arithmetic operator pops the top two numbers, performs the operation, and pushes the result. Thus, this:
 
-## Note
+```
+(1 + 2) * (4 - 3)
+```
 
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+in RPN becomes:
+
+```
+1 2 + 4 3 - *
+```
+
+Define a visitor class for our syntax tree classes that takes an expression, converts it to RPN, and returns the resulting string.
