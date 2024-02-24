@@ -1,5 +1,6 @@
 package jlox.tool;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
@@ -28,7 +29,8 @@ public class GenerateAst {
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
-        String path = outputDir + '/' + baseName + ".java";
+        // Fix
+        String path = outputDir + File.separator + baseName + ".java";
         writer = new PrintWriter(path, "UTF-8");
 
         printLine("package jlox.lox;");
