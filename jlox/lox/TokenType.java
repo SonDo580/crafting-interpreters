@@ -1,4 +1,4 @@
-package jlox;
+package jlox.lox;
 
 enum TokenType {
     LEFT_PAREN, // (

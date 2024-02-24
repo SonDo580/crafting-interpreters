@@ -1,4 +1,4 @@
-package jlox;
+package jlox.lox;
 
 /**
  * For pretty-printing AST nodes
