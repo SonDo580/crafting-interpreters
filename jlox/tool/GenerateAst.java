@@ -29,7 +29,6 @@ public class GenerateAst {
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
-        // Fix
         String path = outputDir + File.separator + baseName + ".java";
         writer = new PrintWriter(path, "UTF-8");
 

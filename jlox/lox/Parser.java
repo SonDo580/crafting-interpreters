@@ -1,13 +1,13 @@
 /** Lox's expression grammar (low-to-high precedence)
- * expression     → equality ;
- * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
- * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
- * term           → factor ( ( "-" | "+" ) factor )* ;
- * factor         → unary ( ( "/" | "*" ) unary )* ;
+ * expression     → equality
+ * equality       → comparison ( ( "!=" | "==" ) comparison )*
+ * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )*
+ * term           → factor ( ( "-" | "+" ) factor )*
+ * factor         → unary ( ( "/" | "*" ) unary )*
  * unary          → ( "!" | "-" ) unary
-                    | primary ;
+                    | primary
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
-                    | "(" expression ")" ;
+                    | "(" expression ")"
  */
 
 package jlox.lox;
