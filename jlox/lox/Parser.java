@@ -1,4 +1,4 @@
-/** Lox's expression grammar
+/** Lox's expression grammar (low-to-high precedence)
  * expression     → equality ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -18,7 +18,7 @@ import static jlox.lox.TokenType.*;
 
 /**
  * Parse different components of Lox's grammar.
- * Construct an AST.
+ * Use recursive-descent (top-down parser)
  */
 class Parser {
     /* A custom runtime exception to indicate parsing error */
