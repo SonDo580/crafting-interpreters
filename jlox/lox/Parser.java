@@ -1,13 +1,14 @@
 /** Lox's expression grammar (low-to-high precedence)
- * expression     → equality ;
- * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
- * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
- * term           → factor ( ( "-" | "+" ) factor )* ;
- * factor         → unary ( ( "/" | "*" ) unary )* ;
+ * expression     → ternary
+ * ternary        → equality ( "?" expression ":" expression )?
+ * equality       → comparison ( ( "!=" | "==" ) comparison )*
+ * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )*
+ * term           → factor ( ( "-" | "+" ) factor )* 
+ * factor         → unary ( ( "/" | "*" ) unary )* 
  * unary          → ( "!" | "-" ) unary
-                    | primary ;
+                    | primary
  * primary        → NUMBER | STRING | "true" | "false" | "nil"
-                    | "(" expression ")" ;
+                    | "(" expression ")"
  */
 
 package jlox.lox;
@@ -43,7 +44,20 @@ class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return ternary();
+    }
+
+    private Expr ternary() {
+        Expr expr = equality();
+
+        if (match(QUESTION)) {
+            Expr trueExpr = expression();
+            consume(COLON, "Expected ':'.");
+            Expr falseExpr = expression();
+            expr = new Expr.Ternary(expr, trueExpr, falseExpr);
+        }
+
+        return expr;
     }
 
     private Expr equality() {

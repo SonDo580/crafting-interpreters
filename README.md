@@ -1,8 +1,26 @@
-# Crafting Interpreters
+## Challenge 6.2
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+Add support for the C-style conditional or “ternary” operator `?:`. What precedence level is allowed between the `?` and `:`? Is the whole operator left-associative or right-associative?
 
-## Note
+## Answer:
 
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+1. **My implementation**
+
+The ternary operator is right-associative.
+
+- expression → ternary
+- ternary → equality ( "?" expression ":" expression )?
+- equality → comparison ( ( "!=" | "==" ) comparison )\*
+- ...
+
+2. **Example**
+
+```
+a ? b : c ? d : e
+```
+
+is evaluated as
+
+```
+a ? b : (c ? d : e)
+```

@@ -25,11 +25,11 @@ public class GenerateAst {
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right"));
+                "Unary    : Token operator, Expr right",
+                "Ternary  : Expr condition, Expr trueExpr, Expr falseExpr"));
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
-        // Fix
         String path = outputDir + File.separator + baseName + ".java";
         writer = new PrintWriter(path, "UTF-8");
 

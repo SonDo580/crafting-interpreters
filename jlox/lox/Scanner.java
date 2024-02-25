@@ -96,6 +96,12 @@ class Scanner {
             case '*':
                 addToken(STAR);
                 break;
+            case '?':
+                addToken(QUESTION);
+                break;
+            case ':':
+                addToken(COLON);
+                break;
 
             // 1 or 2-character tokens
             // Check the next token and consume it upon a match
