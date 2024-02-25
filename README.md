@@ -1,8 +1,3 @@
-# Crafting Interpreters
+## Challenge 6.3
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
-
-## Note
-
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+Add error productions to handle each binary operator appearing without a left-hand operand. In other words, detect a binary operator appearing at the beginning of an expression. Report that as an error, but also parse and discard a right-hand operand with the appropriate precedence.

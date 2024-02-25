@@ -43,6 +43,19 @@ class Parser {
     }
 
     private Expr expression() {
+        // Detect binary operator at the beginning of expression
+        if (isBinaryOp()) {
+            // Return the operator and consume it
+            Token operator = advance();
+
+            // Report the error
+            Lox.error(operator, "Unexpected binary operator at beginning of expression.");
+            Lox.hadError = false; // reset error to print the AST
+
+            // Continue parsing
+            return expression();
+        }
+
         return equality();
     }
 
@@ -162,6 +175,25 @@ class Parser {
             return false;
         }
         return peek().type == type;
+    }
+
+    /* Check if current token matches any of the given types */
+    private boolean check(TokenType... types) {
+        for (TokenType type : types) {
+            if (check(type)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /* Check if current token is a binary operator */
+    private boolean isBinaryOp() {
+        // MINUS can be a unary operator (negation)
+        return check(BANG_EQUAL, EQUAL_EQUAL,
+                GREATER, GREATER_EQUAL, LESS, LESS_EQUAL,
+                PLUS, SLASH, STAR);
     }
 
     /* Consume and return current token */
