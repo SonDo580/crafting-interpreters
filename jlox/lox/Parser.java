@@ -1,5 +1,6 @@
 /** Lox's expression grammar (low-to-high precedence)
- * expression     → equality ;
+ * expression     → comma
+ * comma          → equality ( (",") equality )* ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
@@ -43,7 +44,19 @@ class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return comma();
+    }
+
+    private Expr comma() {
+        Expr expr = equality();
+
+        while (match(COMMA)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
     }
 
     private Expr equality() {

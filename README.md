@@ -1,8 +1,5 @@
-# Crafting Interpreters
+## Challenge 6.1
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+In C, a block is a statement form that allows you to pack a series of statements where a single one is expected. The [comma operator](https://en.wikipedia.org/wiki/Comma_operator) is an analogous syntax for expressions. A comma-separated series of expressions can be given where a single expression is expected (except inside a function call’s argument list). At runtime, the comma operator evaluates the left operand and discards the result. Then it evaluates and returns the right operand.
 
-## Note
-
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+Add support for comma expressions. Give them the same precedence and associativity as in C. Write the grammar, and then implement the necessary parsing code.
