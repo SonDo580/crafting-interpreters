@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import static jlox.TokenType.*;
 
@@ -316,7 +315,7 @@ class Scanner {
         if (type == null) {
             type = IDENTIFIER;
         }
-        addToken(IDENTIFIER);
+        addToken(type);
     }
 
     private boolean isDigit(char c) {
