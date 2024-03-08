@@ -65,27 +65,50 @@ class Interpreter implements Expr.Visitor<Object> {
 
             // Addition | Concatenation
             case PLUS:
-                if (left instanceof Double && right instanceof Double) {
+                if (areNumbers(left, right)) {
                     return (double) left + (double) right;
                 }
-                if (left instanceof String && right instanceof String) {
+                if (areStrings(left, right)) {
                     return (String) left + (String) right;
                 }
                 throw new RuntimeError(expr.operator, "Operands must be 2 numbers or 2 strings.");
 
             // Comparison
             case GREATER:
-                checkNumberOperand(expr.operator, left, right);
-                return (double) left > (double) right;
+                if (areNumbers(left, right)) {
+                    return (double) left > (double) right;
+                }
+                if (areStrings(left, right)) {
+                    return compareString((String) left, (String) right) > 0;
+                }
+                throw new RuntimeError(expr.operator, "Operands must be 2 numbers or 2 strings.");
+
             case GREATER_EQUAL:
-                checkNumberOperand(expr.operator, left, right);
-                return (double) left >= (double) right;
+                if (areNumbers(left, right)) {
+                    return (double) left >= (double) right;
+                }
+                if (areStrings(left, right)) {
+                    return compareString((String) left, (String) right) >= 0;
+                }
+                throw new RuntimeError(expr.operator, "Operands must be 2 numbers or 2 strings.");
+
             case LESS:
-                checkNumberOperand(expr.operator, left, right);
-                return (double) left < (double) right;
+                if (areNumbers(left, right)) {
+                    return (double) left < (double) right;
+                }
+                if (areStrings(left, right)) {
+                    return compareString((String) left, (String) right) < 0;
+                }
+                throw new RuntimeError(expr.operator, "Operands must be 2 numbers or 2 strings.");
+
             case LESS_EQUAL:
-                checkNumberOperand(expr.operator, left, right);
-                return (double) left <= (double) right;
+                if (areNumbers(left, right)) {
+                    return (double) left <= (double) right;
+                }
+                if (areStrings(left, right)) {
+                    return compareString((String) left, (String) right) <= 0;
+                }
+                throw new RuntimeError(expr.operator, "Operands must be 2 numbers or 2 strings.");
 
             // Equality
             case BANG_EQUAL:
@@ -136,12 +159,48 @@ class Interpreter implements Expr.Visitor<Object> {
         throw new RuntimeError(operator, "Operand must be a number.");
     }
 
+    /* Check if the operands of a binary operation are numbers */
+    private boolean areNumbers(Object left, Object right) {
+        return left instanceof Double && right instanceof Double;
+    }
+
+    /* Check if the operands of a binary operation are strings */
+    private boolean areStrings(Object left, Object right) {
+        return left instanceof String && right instanceof String;
+    }
+
     /* Ensures the operands of a binary operation are numbers */
     private void checkNumberOperand(Token operator, Object left, Object right) {
-        if (left instanceof Double && right instanceof Double) {
+        if (areNumbers(left, right)) {
             return;
         }
         throw new RuntimeError(operator, "Operands must be a numbers.");
+    }
+
+    /*
+     * Return -1 if 'left' string is 'less' than 'right' string.
+     * Return 1 if 'left' string is 'greater' than 'right' string.
+     * Return 0 if 2 strings are equal.
+     */
+    private int compareString(String left, String right) {
+        int leftLength = left.length();
+        int rightLength = right.length();
+        int length = leftLength < rightLength ? leftLength : rightLength;
+
+        for (int i = 0; i < length; i++) {
+            if (left.charAt(i) < right.charAt(i)) {
+                return -1;
+            } else if (left.charAt(i) > right.charAt(i)) {
+                return 1;
+            }
+        }
+
+        if (leftLength > length) {
+            return 1;
+        } else if (rightLength > length) {
+            return -1;
+        }
+        return 0;
     }
 
     /* String representation of a Lox value */
