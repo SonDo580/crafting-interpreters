@@ -1,8 +1,10 @@
-# Crafting Interpreters
+## Challenge 7.3
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+What happens right now if you divide a number by zero? What do you think should happen? Justify your choice. How do other languages you know handle division by zero, and why do they make the choices they do?
 
-## Note
+Change the implementation in `visitBinaryExpr()` to detect and report a runtime error for this case.
 
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+## Answer
+
+- With the current implementation, the result is 'Infinity'
+- We should throw a RuntimeError (division by 0)

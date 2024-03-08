@@ -58,6 +58,9 @@ class Interpreter implements Expr.Visitor<Object> {
                 return (double) left - (double) right;
             case SLASH:
                 checkNumberOperand(expr.operator, left, right);
+                if ((double) right == 0) {
+                    throw new RuntimeError(expr.operator, "Division by 0!");
+                }
                 return (double) left / (double) right;
             case STAR:
                 checkNumberOperand(expr.operator, left, right);
