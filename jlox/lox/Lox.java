@@ -12,7 +12,9 @@ import java.util.List;
  * The Lox interpreter
  */
 public class Lox {
+    private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
+    static boolean hadRuntimeError = false;
 
     /*
      * Check command-line arguments.
@@ -36,6 +38,10 @@ public class Lox {
 
         if (hadError) {
             System.exit(65); // input data error
+        }
+
+        if (hadRuntimeError) {
+            System.exit(70); // internal software error
         }
     }
 
@@ -68,7 +74,10 @@ public class Lox {
         }
 
         // Print out the AST
-        System.out.println(new AstPrinter().print(expression));
+        // System.out.println(new AstPrinter().print(expression));
+
+        // Interpret the AST
+        interpreter.interpret(expression);
     }
 
     /* Reports a runtime error */
@@ -89,5 +98,11 @@ public class Lox {
     private static void report(int line, String where, String message) {
         System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    /* Reports a runtime error */
+    static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
+        hadRuntimeError = true;
     }
 }
