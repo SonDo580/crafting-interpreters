@@ -1,6 +1,6 @@
 # Crafting Interpreters
 
-- Develop 2 interpreters for a language called Lox: `jlox` in Java and `clox` in C
+- Develop 2 interpreters for a\the Lox language: `jlox` in Java and `clox` in C
 - Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
 
 ## Note
