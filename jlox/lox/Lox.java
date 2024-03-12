@@ -66,18 +66,14 @@ public class Lox {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
 
         // Stop if there was a syntax error
         if (hadError) {
             return;
         }
 
-        // Print out the AST
-        // System.out.println(new AstPrinter().print(expression));
-
-        // Interpret the AST
-        interpreter.interpret(expression);
+        interpreter.interpret(statements);
     }
 
     /* Reports a runtime error */

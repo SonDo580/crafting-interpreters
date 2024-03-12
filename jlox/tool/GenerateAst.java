@@ -20,12 +20,21 @@ public class GenerateAst {
         }
         String outputDir = args[0];
 
-        // The abstract syntax tree
+        // The abstract syntax tree for Expressions
         defineAst(outputDir, "Expr", Arrays.asList(
+                "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right"));
+                "Unary    : Token operator, Expr right",
+                "Variable : Token name"));
+
+        // The abstract syntax tree for Statements
+        defineAst(outputDir, "Stmt", Arrays.asList(
+                "Block      : List<Stmt> statements",
+                "Expression : Expr expression",
+                "Print      : Expr expression",
+                "Var        : Token name, Expr initializer"));
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
@@ -33,6 +42,8 @@ public class GenerateAst {
         writer = new PrintWriter(path, "UTF-8");
 
         printLine("package jlox.lox;");
+        printLine();
+        printLine("import java.util.List;");
         printLine();
         printLine("abstract class " + baseName + " {");
         level++;
