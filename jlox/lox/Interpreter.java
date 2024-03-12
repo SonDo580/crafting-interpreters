@@ -29,7 +29,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     /* Evaluate an expression */
-    private Object evaluate(Expr expr) {
+    Object evaluate(Expr expr) {
         return expr.accept(this);
     }
 
@@ -218,7 +218,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     /* String representation of a Lox value */
-    private String stringify(Object object) {
+    String stringify(Object object) {
         if (object == null) {
             return "nil";
         }

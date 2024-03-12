@@ -1,5 +1,7 @@
 package jlox.lox;
 
+import static jlox.lox.TokenType.SEMICOLON;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -15,6 +17,7 @@ public class Lox {
     private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
     static boolean hadRuntimeError = false;
+    static boolean replMode = false;
 
     /*
      * Check command-line arguments.
@@ -27,6 +30,7 @@ public class Lox {
         } else if (args.length == 1) {
             runFile(args[0]);
         } else {
+            replMode = true;
             runPrompt();
         }
     }
@@ -66,14 +70,23 @@ public class Lox {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
         Parser parser = new Parser(tokens);
-        List<Stmt> statements = parser.parse();
 
-        // Stop if there was a syntax error
-        if (hadError) {
-            return;
+        if (replMode && tokens.size() > 1
+                && tokens.get(tokens.size() - 2).type != SEMICOLON) {
+            Expr expr = parser.expression();
+            if (hadError) {
+                return;
+            }
+            Object value = interpreter.evaluate(expr);
+            System.out.println(interpreter.stringify(value));
+        } else {
+            List<Stmt> statements = parser.parse();
+            if (hadError) {
+                return;
+            }
+            interpreter.interpret(statements);
         }
 
-        interpreter.interpret(statements);
     }
 
     /* Reports a runtime error */
