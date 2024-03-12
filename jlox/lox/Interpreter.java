@@ -71,7 +71,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
-        Object value = null;
+        Object value = UndefinedValue.INSTANCE;
         if (stmt.initializer != null) {
             value = evaluate(stmt.initializer);
         }
@@ -116,7 +116,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        Object value = environment.get(expr.name);
+        if (value instanceof UndefinedValue) {
+            throw new RuntimeError(expr.name, "Uninitialized variable.");
+        }
+        return value;
     }
 
     @Override
