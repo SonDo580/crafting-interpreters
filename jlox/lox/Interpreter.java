@@ -9,6 +9,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     // The current environment (scope)
     private Environment environment = new Environment();
 
+    // The current loop
+    private Loop loop = new Loop();
+
     /**
      * Interpret the statements.
      * Report runtime error.
@@ -92,10 +95,32 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitWhileStmt(Stmt.While stmt) {
+        // Enter a new loop
+        this.loop = new Loop(this.loop);
+
         while (isTruthy(evaluate(stmt.condition))) {
-            execute(stmt.body);
+            try {
+                execute(stmt.body);
+            } catch (BreakException e) {
+                // Exit the loop early on break
+                break;
+            }
         }
+
+        // Exit the loop
+        this.loop = this.loop.enclosing;
+
         return null;
+    }
+
+    @Override
+    public Void visitBreakStmt(Stmt.Break stmt) {
+        if (this.loop.enclosing == null) {
+            throw new RuntimeError(stmt.keyword, "Break statement not inside any loop.");
+        }
+
+        // Use BreakException to exit current loop early
+        throw new BreakException();
     }
 
     @Override

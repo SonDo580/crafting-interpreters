@@ -44,6 +44,7 @@ enum TokenType {
     FOR,
     WHILE,
     PRINT,
+    BREAK,
 
     EOF
 }

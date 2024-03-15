@@ -8,11 +8,13 @@
                     | ifStmt
                     | printStmt
                     | whileStmt
+                    | breakStmt
                     | block
  * forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
                     expression? ";"
                     expression? ")" statement
  * whileStmt      → "while" "(" expression ")" statement 
+ * breakStmt      → "break" ";"
  * ifStmt         → "if" "(" expression ")" statement
                     ( "else" statement )? ;
  * block          → "{" declaration* "}"                     
@@ -112,6 +114,9 @@ class Parser {
         if (match(WHILE)) {
             return whileStatement();
         }
+        if (match(BREAK)) {
+            return breakStatement();
+        }
         if (match(LEFT_BRACE)) {
             return new Stmt.Block(block());
         }
@@ -173,6 +178,12 @@ class Parser {
         Stmt body = statement();
 
         return new Stmt.While(condition, body);
+    }
+
+    private Stmt breakStatement() {
+        Token keyword = previous();
+        consume(SEMICOLON, "Expect ';' after 'break'.");
+        return new Stmt.Break(keyword);
     }
 
     // Note: the 'else' is bound to the nearest 'if' that precedes it.

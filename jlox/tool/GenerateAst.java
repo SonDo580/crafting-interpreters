@@ -37,7 +37,8 @@ public class GenerateAst {
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Print      : Expr expression",
                 "Var        : Token name, Expr initializer",
-                "While      : Expr condition, Stmt body"));
+                "While      : Expr condition, Stmt body",
+                "Break      : Token keyword"));
     }
 
     private static void defineAst(String outputDir, String baseName, List<String> types) throws IOException {
@@ -78,11 +79,13 @@ public class GenerateAst {
         printLine(className + "(" + fieldList + ") {");
         level++;
 
-        String[] fields = fieldList.split(", ");
-        for (String field : fields) {
-            // Store parameters in fields
-            String name = field.split(" ")[1];
-            printLine("this." + name + " = " + name + ";");
+        if (fieldList.length() > 0) {
+            String[] fields = fieldList.split(", ");
+            for (String field : fields) {
+                // Store parameters in fields
+                String name = field.split(" ")[1];
+                printLine("this." + name + " = " + name + ";");
+            }
         }
 
         level--;
@@ -99,9 +102,12 @@ public class GenerateAst {
         printLine("}");
 
         // Fields
-        printLine();
-        for (String field : fields) {
-            printLine("final " + field + ";");
+        if (fieldList.length() > 0) {
+            printLine();
+            String[] fields = fieldList.split(", ");
+            for (String field : fields) {
+                printLine("final " + field + ";");
+            }
         }
 
         level--;

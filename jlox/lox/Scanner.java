@@ -38,6 +38,7 @@ class Scanner {
         keywords.put("true", TRUE);
         keywords.put("var", VAR);
         keywords.put("while", WHILE);
+        keywords.put("break", BREAK);
     }
 
     /* Initialize a Scanner object with the provided source code */
