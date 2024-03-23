@@ -142,6 +142,13 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitLambdaExpr(Expr.Lambda expr) {
+        Stmt.Function stmt = new Stmt.Function(null, expr.params, expr.body);
+        LoxFunction function = new LoxFunction(stmt, environment);
+        return function;
+    }
+
+    @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
         environment.assign(expr.name, value);

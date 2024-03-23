@@ -29,7 +29,8 @@ public class GenerateAst {
                 "Literal  : Object value",
                 "Logical  : Expr left, Token operator, Expr right",
                 "Unary    : Token operator, Expr right",
-                "Variable : Token name"));
+                "Variable : Token name",
+                "Lambda   : List<Token> params, List<Stmt> body"));
 
         // The abstract syntax tree for Statements
         defineAst(outputDir, "Stmt", Arrays.asList(
