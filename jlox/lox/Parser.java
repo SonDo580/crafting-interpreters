@@ -88,7 +88,11 @@ class Parser {
     private Stmt declaration() {
         try {
             if (match(FUN)) {
-                return function("function");
+                if (check(IDENTIFIER)) {
+                    return function("function");
+                } else {
+                    return expressionStatement();
+                }
             }
             if (match(VAR)) {
                 return varDeclaration();
@@ -414,7 +418,12 @@ class Parser {
         if (match(IDENTIFIER)) {
             return new Expr.Variable(previous());
         }
-        if (match(LEFT_PAREN)) {
+        if (check(LEFT_PAREN)) {
+            if (previous().type == FUN) {
+                return lambda();
+            }
+
+            advance(); // consume the '('
             Expr expr = expression();
             consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
