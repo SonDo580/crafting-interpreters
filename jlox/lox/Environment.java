@@ -20,11 +20,32 @@ public class Environment {
         this.enclosing = enclosing;
     }
 
-    /*
-     * Define or redefine a variable in the current environment
-     */
+    /* Define or redefine a variable in the current environment */
     void define(String name, Object value) {
         values.put(name, value);
+    }
+
+    /*
+     * Return the environment that is a certain distance away
+     * in the enclosing environment chain
+     */
+    Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+            environment = environment.enclosing;
+        }
+
+        return environment;
+    }
+
+    /* Retrieve value of a variable in ancestor(distance) */
+    Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
+    /* Assign value to a variable in ancestor(distance) */
+    void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme, value);
     }
 
     /*
