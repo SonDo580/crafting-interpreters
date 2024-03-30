@@ -24,6 +24,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         FUNCTION
     }
 
+    // Check local function/variable usages
+    private final Map<Token, Boolean> usages = new HashMap<>();
+
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
     }
@@ -92,6 +95,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         // Add the variable to current scope, mark as not initialized
         scope.put(name.lexeme, false);
+
+        // Mark the variable as unused initially
+        usages.put(name, false);
     }
 
     /* Define a variable in the current scope */
@@ -115,6 +121,16 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             if (scopes.get(i).containsKey(name.lexeme)) {
                 interpreter.resolve(expr, scopes.size() - 1 - i);
                 return;
+            }
+        }
+    }
+
+    // Check if the code contains un-used local variables
+    void checkUnUsedVariables() {
+        for (Map.Entry<Token, Boolean> entry : usages.entrySet()) {
+            if (entry.getValue() == Boolean.FALSE) {
+                Token name = entry.getKey();
+                throw new RuntimeError(name, "'" + name.lexeme + "'" + " is never used.");
             }
         }
     }
@@ -198,6 +214,9 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (!scopes.isEmpty() && scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
             Lox.error(expr.name, "Can't read local variable in its own initializer.");
         }
+
+        // Mark the variable as used
+        usages.put(expr.name, true);
 
         resolveLocal(expr, expr.name);
         return null;

@@ -81,6 +81,9 @@ public class Lox {
             return;
         }
 
+        // Check for un-used local variables
+        resolver.checkUnUsedVariables();
+
         interpreter.interpret(statements);
     }
 
