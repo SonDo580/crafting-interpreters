@@ -24,6 +24,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         FUNCTION,
         INITIALIZER,
         METHOD,
+        STATIC
     }
 
     // Currently inside a class or not
@@ -145,17 +146,22 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         declare(stmt.name);
         define(stmt.name);
 
+        // Resolve static methods
+        for (Stmt.Function staticMethod : stmt.staticMethods) {
+            resolveFunction(staticMethod, FunctionType.STATIC);
+        }
+
         // Create a new scope surrounding the methods and define “this” in it
         beginScope();
         scopes.peek().put("this", true);
 
         for (Stmt.Function method : stmt.methods) {
-            FunctionType declaration = FunctionType.METHOD;
+            FunctionType type = FunctionType.METHOD;
             if (method.name.lexeme.equals("init")) {
-                declaration = FunctionType.INITIALIZER;
+                type = FunctionType.INITIALIZER;
             }
 
-            resolveFunction(method, declaration);
+            resolveFunction(method, type);
         }
 
         endScope();

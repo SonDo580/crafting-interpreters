@@ -3,13 +3,26 @@ package jlox.lox;
 import java.util.List;
 import java.util.Map;
 
-class LoxClass implements LoxCallable {
+class LoxClass extends LoxInstance implements LoxCallable {
     final String name;
     final Map<String, LoxFunction> methods;
+    final Map<String, LoxFunction> staticMethods;
 
-    LoxClass(String name, Map<String, LoxFunction> methods) {
+    LoxClass(String name, Map<String, LoxFunction> methods, Map<String, LoxFunction> staticMethods) {
+        super(null);
         this.name = name;
         this.methods = methods;
+        this.staticMethods = staticMethods;
+        super.setClass(this);
+    }
+
+    /* Look up a static method on current class */
+    LoxFunction findStaticMethod(String name) {
+        if (staticMethods.containsKey(name)) {
+            return staticMethods.get(name);
+        }
+
+        return null;
     }
 
     /* Look up a method on current class */

@@ -1,10 +1,11 @@
 /** Lox's grammar
  * program        → statement* EOF
  * declaration    → classDecl
-                    |funDecl
+                    | funDecl
                     | varDecl 
                     | statement
- * classDecl      → "class" IDENTIFIER "{" function* "}"
+ * classDecl      → "class" IDENTIFIER "{" (staticMethod | function)* "}"
+ * staticMethod   → "class" function
  * funDecl        → "fun" function 
  * function       → IDENTIFIER "(" parameters? ")" block 
  * parameters     → IDENTIFIER ( "," IDENTIFIER )* 
@@ -108,12 +109,19 @@ class Parser {
         consume(LEFT_BRACE, "Expect '{' before class body.");
 
         List<Stmt.Function> methods = new ArrayList<>();
+        List<Stmt.Function> staticMethods = new ArrayList<>();
+
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
-            methods.add(function("method"));
+            if (check(CLASS)) {
+                advance();
+                staticMethods.add(function("staticMethod"));
+            } else {
+                methods.add(function("method"));
+            }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name, methods, staticMethods);
     }
 
     private Stmt varDeclaration() {
