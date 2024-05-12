@@ -98,16 +98,42 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        Object superclass = null;
+        if (stmt.superclass != null) {
+            superclass = evaluate(stmt.superclass);
+            if (!(superclass instanceof LoxClass)) {
+                throw new RuntimeError(stmt.superclass.name, "Super class must be a class.");
+            }
+        }
+
         environment.define(stmt.name.lexeme, null);
+
+        // Create a new environment if the class has superclass
+        if (stmt.superclass != null) {
+            environment = new Environment(environment);
+            environment.define("super", superclass);
+        }
+
+        // - Each method has the environment with 'super' as its closure.
+        // - When binding method ('bind' method of LoxFunction),
+        // the new environment with 'this' will have
+        // the environment with 'super' as its enclosing.
+        // - Usage: look up 'this' (visitSuperExpr).
 
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
-            // isInitializer - check if method name is 'init' 
+            // isInitializer - check if method name is 'init'
             LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
 
-        LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
+        LoxClass klass = new LoxClass(stmt.name.lexeme, (LoxClass) superclass, methods);
+
+        // Pop the environment for superclass if needed
+        if (stmt.superclass != null) {
+            environment = environment.enclosing;
+        }
+
         environment.assign(stmt.name, klass);
 
         return null;
@@ -221,6 +247,29 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object value = evaluate(expr.value);
         ((LoxInstance) object).set(expr.name, value);
         return value;
+    }
+
+    @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        // Look up the super class
+        int distance = locals.get(expr);
+        LoxClass superclass = (LoxClass) environment.getAt(
+                distance, "super");
+
+        // The environment where "this" is bound is always
+        // right inside the environment where "super" is stored.
+        LoxInstance object = (LoxInstance) environment.getAt(
+                distance - 1, "this");
+
+        // Loop up and bind the method
+        LoxFunction method = superclass.findMethod(expr.method.lexeme);
+
+        if (method == null) {
+            throw new RuntimeError(expr.method,
+                    "Undefined property '" + expr.method.lexeme + "'.");
+        }
+
+        return method.bind(object);
     }
 
     @Override
