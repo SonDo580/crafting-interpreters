@@ -12,10 +12,21 @@ class LoxFunction implements LoxCallable {
     // Whether the function in an initializer or not
     private final boolean isInitializer;
 
+    // Whether the function is a getter or not
+    final boolean isGetter;
+
     LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {
         this.isInitializer = isInitializer;
         this.declaration = declaration;
         this.closure = closure;
+        this.isGetter = false;
+    }
+
+    LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer, boolean isGetter) {
+        this.isInitializer = isInitializer;
+        this.declaration = declaration;
+        this.closure = closure;
+        this.isGetter = isGetter;
     }
 
     /* Bind the method to a given instance */
@@ -24,7 +35,7 @@ class LoxFunction implements LoxCallable {
         // Declare “this” as a variable and bind it to the given instance
         Environment environment = new Environment(closure);
         environment.define("this", instance);
-        return new LoxFunction(declaration, environment, isInitializer);
+        return new LoxFunction(declaration, environment, isInitializer, isGetter);
     }
 
     @Override

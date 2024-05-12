@@ -4,7 +4,8 @@
                     |funDecl
                     | varDecl 
                     | statement
- * classDecl      → "class" IDENTIFIER "{" function* "}"
+ * classDecl      → "class" IDENTIFIER "{" (getter | function)* "}"
+ * getter         → IDENTIFIER block
  * funDecl        → "fun" function 
  * function       → IDENTIFIER "(" parameters? ")" block 
  * parameters     → IDENTIFIER ( "," IDENTIFIER )* 
@@ -65,6 +66,10 @@ class Parser {
     private static class ParseError extends RuntimeException {
     }
 
+    /* A custom exception (to try parsing getter methods) */
+    private static class MethodError extends RuntimeException {
+    }
+
     private final List<Token> tokens;
     private int current = 0; // current token index
 
@@ -108,12 +113,18 @@ class Parser {
         consume(LEFT_BRACE, "Expect '{' before class body.");
 
         List<Stmt.Function> methods = new ArrayList<>();
+        List<Stmt.Function> getters = new ArrayList<>();
+
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
-            methods.add(function("method"));
+            try {
+                methods.add(function("method"));
+            } catch (MethodError e) {
+                getters.add(getter());
+            }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name, methods, getters);
     }
 
     private Stmt varDeclaration() {
@@ -248,7 +259,11 @@ class Parser {
     private Stmt.Function function(String kind) {
         Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
 
-        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+        if (!check(LEFT_PAREN)) {
+            throw new MethodError();
+        }
+
+        advance(); // consume the left parenthesis
         List<Token> parameters = new ArrayList<>();
         if (!check(RIGHT_PAREN)) {
             do {
@@ -265,6 +280,13 @@ class Parser {
         List<Stmt> body = block();
 
         return new Stmt.Function(name, parameters, body);
+    }
+
+    private Stmt.Function getter() {
+        Token name = previous();    // the getter name
+        consume(LEFT_BRACE, "Expect '{' before getter body.");
+        List<Stmt> body = block();
+        return new Stmt.Function(name, new ArrayList<>(), body);
     }
 
     private List<Stmt> block() {
