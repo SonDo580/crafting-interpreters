@@ -1,0 +1,29 @@
+class A {
+  run() {
+    print "A Running.";
+  }
+}
+
+class B {
+  run () {
+    print "B Running.";
+  }
+
+  jump() {
+    print "B Jumping.";
+  }
+}
+
+class C < A, B {
+  run() {
+    super.run();
+  }
+
+  jump() {
+    super.jump();
+  }
+}
+
+var c = C();
+c.run();  // should print "A Running."
+c.jump(); // should print "B Jumping."

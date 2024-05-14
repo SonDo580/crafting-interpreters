@@ -1,8 +1,10 @@
-# Crafting Interpreters
+## Challenge 13.1
 
-- Develop 2 interpreters for the Lox language: `jlox` in Java and `clox` in C
-- Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
+Lox supports only single inheritance — a class may have a single superclass and that’s the only way to reuse methods across classes. Other languages have explored a variety of ways to more freely reuse and share capabilities across classes: mixins, traits, multiple inheritance, virtual inheritance, extension methods, etc.
 
-## Note
+If you were to add some feature along these lines to Lox, which would you pick and why?
 
-- exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+## Implement
+
+- I will implement `multiple inheritance`
+- Because Python has that feature, and I love Python :)
