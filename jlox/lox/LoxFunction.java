@@ -9,7 +9,7 @@ class LoxFunction implements LoxCallable {
     // Allows the function to access variables from its defining scope.
     private final Environment closure;
 
-    // Whether the function in an initializer or not
+    // Whether the function is an initializer or not
     private final boolean isInitializer;
 
     LoxFunction(Stmt.Function declaration, Environment closure, boolean isInitializer) {

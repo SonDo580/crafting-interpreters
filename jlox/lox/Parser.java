@@ -23,7 +23,7 @@
                     expression? ")" statement
  * whileStmt      → "while" "(" expression ")" statement 
  * ifStmt         → "if" "(" expression ")" statement
-                    ( "else" statement )? ;
+                    ( "else" statement )?
  * block          → "{" declaration* "}"                     
  * exprStmt       → expression ";" 
  * printStmt      → "print" expression ";" 

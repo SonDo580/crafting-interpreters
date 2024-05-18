@@ -224,10 +224,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object left = evaluate(expr.left);
 
         if (expr.operator.type == TokenType.OR) {
+            // OR expression: return the first truthy value
             if (isTruthy(left)) {
                 return left;
             }
         } else {
+            // AND expression: return the first falsy value
             if (!isTruthy(left)) {
                 return left;
             }
