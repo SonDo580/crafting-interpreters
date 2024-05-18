@@ -38,7 +38,7 @@ public class GenerateAst {
         // The abstract syntax tree for Statements
         defineAst(outputDir, "Stmt", Arrays.asList(
                 "Block      : List<Stmt> statements",
-                "Class      : Token name, Expr.Variable superclass, List<Stmt.Function> methods",
+                "Class      : Token name, List<Expr.Variable> superClasses, List<Stmt.Function> methods",
                 "Expression : Expr expression",
                 "Function   : Token name, List<Token> params, List<Stmt> body",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",

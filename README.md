@@ -6,5 +6,4 @@ If you were to add some feature along these lines to Lox, which would you pick a
 
 ## Implement
 
-- I will implement `multiple inheritance`
-- Because Python has that feature, and I love Python :)
+I will implement `multiple inheritance`

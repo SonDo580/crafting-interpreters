@@ -4,7 +4,7 @@
                     |funDecl
                     | varDecl 
                     | statement
- * classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )? 
+ * classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER ("," IDENTIFIER)* )? 
  *                  "{" function* "}"
  * funDecl        → "fun" function 
  * function       → IDENTIFIER "(" parameters? ")" block 
@@ -108,10 +108,13 @@ class Parser {
     private Stmt classDeclaration() {
         Token name = consume(IDENTIFIER, "Expect class name.");
 
-        Expr.Variable superclass = null;
+        List<Expr.Variable> superClasses = new ArrayList<>();
         if (match(LESS)) {
-            consume(IDENTIFIER, "Expect super class name.");
-            superclass = new Expr.Variable(previous());
+            do {
+                consume(IDENTIFIER, "Expect super class name.");
+                Expr.Variable superClass = new Expr.Variable(previous());
+                superClasses.add(superClass);
+            } while (match(COMMA));
         }
 
         consume(LEFT_BRACE, "Expect '{' before class body.");
@@ -122,7 +125,7 @@ class Parser {
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
-        return new Stmt.Class(name, superclass, methods);
+        return new Stmt.Class(name, superClasses, methods);
     }
 
     private Stmt varDeclaration() {
