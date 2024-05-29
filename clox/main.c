@@ -5,6 +5,7 @@
 int main(int argc, const char *argv[])
 {
     Chunk chunk;
+    
     initChunk(&chunk);
 
     int constantIndex = addConstant(&chunk, 1.2);
