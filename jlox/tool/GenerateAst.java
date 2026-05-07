@@ -15,7 +15,7 @@ public class GenerateAst {
 
     public static void main(String[] args) throws IOException {
         if (args.length != 1) {
-            System.out.println("Usage: java <GenerateAst.class path> <output directory>");
+            System.out.println("Usage: java jlox.tool.GenerateAst <output_dir>");
             System.exit(64); // command-line usage error
         }
         String outputDir = args[0];

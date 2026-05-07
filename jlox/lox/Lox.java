@@ -22,7 +22,7 @@ public class Lox {
      */
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
-            System.out.println("Usage: java <Lox.class path> <Lox program>");
+            System.out.println("Usage: java jlox.lox.Lox [script_path]");
             System.exit(64); // command-line usage error
         } else if (args.length == 1) {
             runFile(args[0]);

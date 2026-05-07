@@ -1,7 +1,7 @@
 /** Lox's grammar
  * program        → statement* EOF
  * declaration    → classDecl
-                    |funDecl
+                    | funDecl
                     | varDecl 
                     | statement
  * classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )? 
