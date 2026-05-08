@@ -7,11 +7,16 @@ int main(int argc, const char *argv[])
     Chunk chunk;
     initChunk(&chunk);
 
-    int constantIndex = addConstant(&chunk, 1.2);
-    writeChunk(&chunk, OP_CONSTANT, 123);
-    writeChunk(&chunk, constantIndex, 123);
+    // exhaust indices representable with OP_CONSTANT instruction (2^8)
+    for (int i = 0; i < 256; i++)
+    {
+        writeConstant(&chunk, i * 0.5, 1);
+    }
 
-    writeChunk(&chunk, OP_RETURN, 123);
+    // this will use OP_CONSTANT_LONG instruction
+    writeConstant(&chunk, 1.2, 2);
+
+    writeChunk(&chunk, OP_RETURN, 2);
 
     disassembleChunk(&chunk, "test chunk");
 

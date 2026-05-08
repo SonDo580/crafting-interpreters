@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "chunk.h"
 #include "memory.h"
@@ -42,4 +43,28 @@ int addConstant(Chunk *chunk, Value value)
 {
     writeValueArray(&chunk->constants, value);
     return chunk->constants.count - 1;
+}
+
+// Add value to constant array then write the appropriate instruction
+void writeConstant(Chunk *chunk, Value value, int line)
+{
+    int constantIndex = addConstant(chunk, value);
+    if (constantIndex < (1 << 8))
+    {
+        writeChunk(chunk, OP_CONSTANT, line);
+        writeChunk(chunk, constantIndex, line);
+    }
+    else if (constantIndex < (1 << 16))
+    {
+        writeChunk(chunk, OP_CONSTANT_LONG, line);
+
+        // use Little Endian (low-order byte at lower address)
+        writeChunk(chunk, (uint8_t)constantIndex, line); // truncate to low-order byte
+        writeChunk(chunk, (constantIndex >> 8), line);
+    }
+    else
+    {
+        fprintf(stderr, "too many constants\n");
+        exit(EXIT_FAILURE);
+    }
 }
