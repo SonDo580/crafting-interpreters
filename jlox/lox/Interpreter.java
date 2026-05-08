@@ -112,13 +112,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         if (stmt.superclass != null) {
             environment = new Environment(environment);
             environment.define("super", superclass);
+            // - When binding method ('bind' method of LoxFunction),
+            // the new environment with 'this' will have
+            // the environment with 'super' as its enclosing.
         }
-
-        // - Each method has the environment with 'super' as its closure.
-        // - When binding method ('bind' method of LoxFunction),
-        // the new environment with 'this' will have
-        // the environment with 'super' as its enclosing.
-        // - Usage: look up 'this' (visitSuperExpr).
 
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
@@ -147,8 +144,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
-        // The current environment is closed over by the function
-        // isInitializer is always false for function declarations
+        // Closure: The function captures the current environment when it is declared.
         LoxFunction function = new LoxFunction(stmt, environment, false);
 
         environment.define(stmt.name.lexeme, function);
@@ -444,7 +440,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         if (left instanceof Double && right instanceof Double) {
             return;
         }
-        throw new RuntimeError(operator, "Operands must be a numbers.");
+        throw new RuntimeError(operator, "Operands must be numbers.");
     }
 
     /* String representation of a Lox value */

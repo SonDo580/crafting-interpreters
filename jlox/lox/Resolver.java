@@ -13,7 +13,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
 
     // The Boolean value indicates whether the variable
-    // has been initialized within the current scope.
+    // has been initialized within the current local scope.
     private final Stack<Map<String, Boolean>> scopes = new Stack<>();
 
     // Currently inside a function or not
@@ -238,8 +238,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
-        // Resolve the initializer before defining the variable.
-        // To handle variable being accessed in its own initializer.
+        // Resolve the initializer after declaring but before defining the variable
+        // -> compile error if variable is accessed in its own initializer
         declare(stmt.name);
         if (stmt.initializer != null) {
             resolve(stmt.initializer);
@@ -331,7 +331,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                     "Can't use 'super' in a class with no superclass.");
         }
 
-        // Resolve 'super' as if it were a variable
+        // Resolve 'super' like a variable
         resolveLocal(expr, expr.keyword);
         return null;
     }
@@ -343,6 +343,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
             return null;
         }
 
+        // Resolve 'this' like a variable
         resolveLocal(expr, expr.keyword);
         return null;
     }
