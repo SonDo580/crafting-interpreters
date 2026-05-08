@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "value.h"
+#include "line.h"
 
 // Each instruction has a 1-byte operation code
 typedef enum
@@ -17,7 +18,7 @@ typedef struct
     int count;
     int capacity;
     uint8_t *code;
-    int* lines; // source line number of the corresponding bytecode
+    LineArray lines;
     ValueArray constants;
 } Chunk;
 

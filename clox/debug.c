@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "debug.h"
 #include "value.h"
@@ -32,13 +33,24 @@ static int simpleInstruction(const char *name, int offset)
 int disassembleInstruction(Chunk *chunk, int offset)
 {
     printf("%04d ", offset);
-    if (offset > 0 && chunk->lines[offset] == chunk->lines[offset - 1])
+
+    int line, prevLine;
+    if ((line = getLine(&chunk->lines, offset)) == -1)
+    {
+        exit(EXIT_FAILURE);
+    }
+    if ((prevLine = getLine(&chunk->lines, offset - 1)) == -1)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+    if (offset > 0 && line == prevLine)
     {
         printf("   | ");
     }
     else
     {
-        printf("%4d ", chunk->lines[offset]);
+        printf("%4d ", line);
     }
 
     uint8_t instruction = chunk->code[offset];
