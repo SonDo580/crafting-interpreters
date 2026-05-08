@@ -4,20 +4,19 @@
 - Book: [Crafting Interpreters](https://craftinginterpreters.com/contents.html)
 - Lox samples: [test files](https://github.com/munificent/craftinginterpreters/tree/master/test)
 
-## Note
+## Extensions
 
-- Extend the base interpreter: checkout `challenge...` branches
-- Exit code: use the convention defined in the UNIX [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html) header
+Checkout `challenge...` branches
 
-# JLox
+## JLox
 
-## Compile
+### Compile
 
 ```bash
 bash build_jlox.sh
 ```
 
-## Run
+### Run
 
 ```bash
 # interactive mode
@@ -27,7 +26,7 @@ java jlox.lox.Lox
 java jlox.lox.Lox <script_path>
 ```
 
-## Debug (VSCode)
+### Debug (VSCode)
 
 - `launch.json`
 
@@ -64,4 +63,25 @@ java jlox.lox.Lox <script_path>
     }
   ]
 }
+```
+
+## CLox
+
+### Compile
+
+```bash
+cd clox
+make
+```
+
+### Run
+
+```bash
+./clox
+```
+
+### Debug
+
+```bash
+gdb clox
 ```

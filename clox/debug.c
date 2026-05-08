@@ -28,7 +28,7 @@ static int simpleInstruction(const char *name, int offset)
     return offset + 1;
 }
 
-// Return value: the offset of the next instruction
+// Return the offset of the next instruction
 int disassembleInstruction(Chunk *chunk, int offset)
 {
     printf("%04d ", offset);

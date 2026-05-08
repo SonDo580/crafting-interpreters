@@ -3,8 +3,9 @@
 # Ignore Java class files
 **/*.class
 
-# Ignore C executable files (I used .o extension for this purpose)
+# Ignore C object files and CLox executable
 **/*.o
+clox/clox
 
-# Ignore sample Lox files (this is for testing the interpreters)
+# Ignore sample Lox files (for testing the interpreters)
 lox_samples

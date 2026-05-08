@@ -4,7 +4,7 @@
 #include "common.h"
 
 #define GROW_CAPACITY(capacity) \
-    ((capacity) == 0 ? 8 : capacity * 2)
+    ((capacity) == 0 ? 8 : (capacity) * 2)
 
 #define GROW_ARRAY(type, pointer, oldCount, newCount)    \
     (type *)reallocate(pointer, sizeof(type) * (oldCount), \
