@@ -9,3 +9,5 @@ clox/clox
 
 # Ignore sample Lox files (for testing the interpreters)
 lox_samples
+
+todo.md
