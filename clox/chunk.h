@@ -8,6 +8,11 @@
 typedef enum
 {
     OP_CONSTANT,
+    OP_ADD,
+    OP_SUBTRACT,
+    OP_MULTIPLY,
+    OP_DIVIDE,
+    OP_NEGATE,
     OP_RETURN
 } OpCode;
 
@@ -17,7 +22,7 @@ typedef struct
     int count;
     int capacity;
     uint8_t *code;
-    int* lines; // source line number of the corresponding bytecode
+    int *lines; // source line number of the corresponding bytecode
     ValueArray constants;
 } Chunk;
 
