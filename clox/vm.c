@@ -132,9 +132,6 @@ static InterpretResult run()
         case OP_ADD:
             BINARY_OP(NUMBER_VAL, +);
             break;
-        case OP_SUBTRACT:
-            BINARY_OP(NUMBER_VAL, -);
-            break;
         case OP_MULTIPLY:
             BINARY_OP(NUMBER_VAL, *);
             break;

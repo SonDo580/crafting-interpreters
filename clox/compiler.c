@@ -197,7 +197,7 @@ static void binary()
         emitByte(OP_ADD);
         break;
     case TOKEN_MINUS:
-        emitByte(OP_SUBTRACT);
+        emitBytes(OP_NEGATE, OP_ADD); // a - b = a + (-b)
         break;
     case TOKEN_STAR:
         emitByte(OP_MULTIPLY);
