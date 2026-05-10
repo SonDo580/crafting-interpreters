@@ -3,8 +3,7 @@
 # Ignore Java class files
 **/*.class
 
-# Ignore C object files and CLox executable
-**/*.o
+# Ignore CLox executable
 clox/clox
 
 # Ignore sample Lox files (for testing the interpreters)

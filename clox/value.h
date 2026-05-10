@@ -3,16 +3,48 @@
 
 #include "common.h"
 
-typedef double Value;
+typedef enum
+{
+    VAL_BOOL,
+    VAL_NIL,
+    VAL_NUMBER,
+} ValueType;
 
-// The constant pool is a dynamic array of values
-// An instruction to load a constant looks up the value by index
-typedef struct {
+typedef struct
+{
+    ValueType type;
+    union
+    {
+        bool boolean;
+        double number;
+    } as;
+} Value;
+
+// check Lox Value's type
+#define IS_BOOL(value) ((value).type == VAL_BOOL)
+#define IS_NIL(value) ((value).type == VAL_NIL)
+#define IS_NUMBER(value) ((value).type == VAL_NUMBER)
+
+// Unpack Lox Value to C value
+#define AS_BOOL(value) ((value).as.boolean)
+#define AS_NUMBER(value) ((value).as.number)
+// no AS_NIL since a Value of type VAL_NIL doesn't carry data
+
+// Convert C value to Lox Value
+#define BOOL_VAL(value) ((Value){VAL_BOOL, {.boolean = value}})
+#define NIL_VAL ((Value){VAL_NIL, {.number = 0}})
+#define NUMBER_VAL(value) ((Value){VAL_NUMBER, {.number = value}})
+
+// The constant pool
+// (load-constant instruction looks up the value by index)
+typedef struct
+{
     int capacity;
     int count;
     Value *values;
 } ValueArray;
 
+bool valuesEqual(Value a, Value b);
 void initValueArray(ValueArray *array);
 void writeValueArray(ValueArray *array, Value value);
 void freeValueArray(ValueArray *array);

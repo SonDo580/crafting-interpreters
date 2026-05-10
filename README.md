@@ -71,7 +71,6 @@ java jlox.lox.Lox <script_path>
 
 ```bash
 cd clox
-make clean
 make
 ```
 
