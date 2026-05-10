@@ -112,6 +112,17 @@ static void consume(TokenType type, const char *message)
     errorAtCurrent(message);
 }
 
+// Consume current token and return True if it has expected type
+static bool match(TokenType type)
+{
+    if (parser.current.type == type)
+    {
+        advance();
+        return true;
+    }
+    return false;
+}
+
 // Append a byte to the chunk
 static void emitByte(uint8_t byte)
 {
@@ -168,7 +179,7 @@ static void binary()
 
     // Compile the right operand
     // . Use 1 higher level of precedence, since binary operators are left-associative
-    // . Example: 1 + 2 + 3 is parsed like (1 + 2) + 3 
+    // . Example: 1 + 2 + 3 is parsed like (1 + 2) + 3
     ParseRule *rule = getRule(operatorType);
     parsePrecedence((Precedence)(rule->precedence + 1));
 
@@ -239,6 +250,8 @@ ParseRule rules[] = {
     [TOKEN_SEMICOLON] = {NULL, NULL, PREC_NONE},
     [TOKEN_SLASH] = {NULL, binary, PREC_FACTOR},
     [TOKEN_STAR] = {NULL, binary, PREC_FACTOR},
+    [TOKEN_QUESTION] = {NULL, NULL, PREC_NONE},
+    [TOKEN_COLON] = {NULL, NULL, PREC_NONE},
     [TOKEN_BANG] = {NULL, NULL, PREC_NONE},
     [TOKEN_BANG_EQUAL] = {NULL, NULL, PREC_NONE},
     [TOKEN_EQUAL] = {NULL, NULL, PREC_NONE},
@@ -295,9 +308,20 @@ static ParseRule *getRule(TokenType type)
     return &rules[type];
 }
 
-static void expression()
+static void ternary()
 {
     parsePrecedence(PREC_ASSIGNMENT);
+    if (match(TOKEN_QUESTION))
+    {
+        expression();
+        consume(TOKEN_COLON, "Expect ':' in conditional expression.");
+        expression();
+    }
+}
+
+static void expression()
+{
+    ternary();
 }
 
 bool compile(const char *source, Chunk *chunk)

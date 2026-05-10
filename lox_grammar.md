@@ -34,7 +34,8 @@ printStmt      → "print" expression ";"
 ## Lox's expression grammar (increasing precedence)
 
 ```
-expression     → assignment
+expression     → ternary
+ternary        → assignment ("?" expression ":" expression)?
 assignment     → ( call ".")? IDENTIFIER "=" assignment
                  | logic_or
 logic_or       → logic_and ( "or" logic_and )*
