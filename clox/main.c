@@ -13,6 +13,7 @@ static void repl()
     for (;;)
     {
         printf("> ");
+
         if (!fgets(line, sizeof(line), stdin))
         {
             printf("\n");
@@ -64,7 +65,7 @@ static void runFile(const char *path)
 
     if (result == INTERPRET_COMPILE_ERROR)
         exit(65); // input data error
-    if (result == INTERPRET_COMPILE_ERROR)
+    if (result == INTERPRET_RUNTIME_ERROR)
         exit(70); // internal software error
 }
 
