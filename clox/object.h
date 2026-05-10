@@ -26,7 +26,7 @@ struct ObjString
 {
     Obj obj; // must be 1st field
     int length;
-    char *chars;
+    char chars[]; // flexible array member must be last
 };
 
 ObjString *takeString(char *chars, int length);

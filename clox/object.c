@@ -24,9 +24,10 @@ static Obj *allocateObject(size_t size, ObjType type)
 // Create string object
 static ObjString *allocateString(char *chars, int length)
 {
-    ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
+    size_t size = sizeof(ObjString) + (length + 1) * sizeof(char);
+    ObjString *string = (ObjString *)allocateObject(size, OBJ_STRING);
     string->length = length;
-    string->chars = chars;
+    memcpy(string->chars, chars, length + 1);
     return string;
 }
 
