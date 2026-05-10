@@ -22,27 +22,25 @@ static Obj *allocateObject(size_t size, ObjType type)
 }
 
 // Create string object
-static ObjString *allocateString(char *chars, int length)
+static ObjString *allocateString(char *chars, int length, bool constant)
 {
     ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     string->length = length;
     string->chars = chars;
+    string->constant = constant;
     return string;
 }
 
 // Create string object ("own" the given string, don't need copy)
 ObjString *takeString(char *chars, int length)
 {
-    return allocateString(chars, length);
+    return allocateString(chars, length, false);
 }
 
-// Extract string value from the lexeme & Create string object
-ObjString *copyString(const char *chars, int length)
+// Create string object that points to source string
+ObjString *takeConstantString(const char *chars, int length)
 {
-    char *heapChars = ALLOCATE(char, length + 1);
-    memcpy(heapChars, chars, length);
-    heapChars[length] = '\0';
-    return allocateString(heapChars, length);
+    return allocateString((char*)chars, length, true);
 }
 
 void printObject(Value value)
@@ -50,7 +48,8 @@ void printObject(Value value)
     switch (OBJ_TYPE(value))
     {
     case OBJ_STRING:
-        printf("%s", AS_CSTRING(value));
+        // must specify length since constant strings don't have '\0' terminator
+        printf("%.*s", AS_STRING(value)->length, AS_CSTRING(value));
         break;
     }
 }

@@ -27,10 +27,11 @@ struct ObjString
     Obj obj; // must be 1st field
     int length;
     char *chars;
+    bool constant; // True if 'chars' points to source string
 };
 
 ObjString *takeString(char *chars, int length);
-ObjString *copyString(const char *chars, int length);
+ObjString *takeConstantString(const char *chars, int length);
 void printObject(Value value);
 
 static inline bool isObjType(Value value, ObjType type)
