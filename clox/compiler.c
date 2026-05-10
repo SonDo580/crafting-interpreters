@@ -176,7 +176,7 @@ static void binary()
     switch (operatorType)
     {
     case TOKEN_BANG_EQUAL:
-        emitBytes(OP_EQUAL, OP_NOT); // a != b <-> !(a == b)
+        emitByte(OP_NOT_EQUAL);
         break;
     case TOKEN_EQUAL_EQUAL:
         emitByte(OP_EQUAL);
@@ -185,13 +185,13 @@ static void binary()
         emitByte(OP_GREATER);
         break;
     case TOKEN_GREATER_EQUAL:
-        emitBytes(OP_LESS, OP_NOT); // a >= b <-> !(a < b)
+        emitByte(OP_GREATER_EQUAL);
         break;
     case TOKEN_LESS:
         emitByte(OP_LESS);
         break;
     case TOKEN_LESS_EQUAL:
-        emitBytes(OP_GREATER, OP_NOT); // a <= b <-> !(a > b)
+        emitByte(OP_LESS_EQUAL);
         break;
     case TOKEN_PLUS:
         emitByte(OP_ADD);
