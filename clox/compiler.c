@@ -158,6 +158,18 @@ static uint8_t makeConstant(Value value)
     return (uint8_t)constantIndex;
 }
 
+// Find index of existing constant with the same value;
+// Return -1 if not found
+static uint8_t findConstant(Chunk *chunk, Value value)
+{
+    for (int i = 0; i < chunk->constants.count; i++)
+    {
+        if (valuesEqual(value, chunk->constants.values[i]))
+            return i;
+    }
+    return -1;
+}
+
 static void emitConstant(Value value)
 {
     emitBytes(OP_CONSTANT, makeConstant(value));
@@ -181,11 +193,16 @@ static void statement();
 static ParseRule *getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
-// Add the lexeme as a string to the chunk's constant table;
-// Return its index in constant table
+// Find index of existing constant that points to the same string;
+// If not found, add the lexeme as a string to the chunk's constant table,
+// and return its index;
 static uint8_t identifierConstant(Token *name)
 {
-    return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
+    Value value = OBJ_VAL(copyString(name->start, name->length));
+    uint8_t constantIndex = findConstant(currentChunk(), value);
+    if (constantIndex != (uint8_t)-1)
+        return constantIndex;
+    return makeConstant(value);
 }
 
 static void binary(bool canAssign)
