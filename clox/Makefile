@@ -1,6 +1,6 @@
 TARGET = clox
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -g
 SRCS = $(wildcard *.c)
 
 $(TARGET): $(SRCS)

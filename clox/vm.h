@@ -13,8 +13,9 @@ typedef struct
     uint8_t *ip; // instruction pointer
     Value stack[STACK_MAX];
     Value *stackTop; // 1 past last item
-    Obj *objects;    // linked-list of all allocated objects
-    Table strings;   // hash table of all (unique) strings created
+    Obj *objects;    // all allocated objects
+    Table globals;   // global variables
+    Table strings;   // all (unique) strings created
 } VM;
 
 typedef enum
