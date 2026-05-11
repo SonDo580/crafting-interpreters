@@ -21,15 +21,28 @@ void freeTable(Table *table)
     initTable(table);
 }
 
+// Get hash of primitive types (numbers, boolean, nil) and strings
+static uint32_t getHash(Value value)
+{
+    if (IS_BOOL(value))
+        return (uint32_t)AS_BOOL(value);
+    if (IS_NIL(value) || IS_NUMBER(value))
+        return (uint32_t)AS_NUMBER(value);
+    if (IS_STRING(value))
+        return AS_STRING(value)->hash;
+    exit(EXIT_FAILURE); // unreachable
+}
+
 // Use linear probing to find bucket for 'key'.
 // The returned bucket can be in 3 cases:
 // - the 1st one containing tombstone on the probing sequence.
 // - empty if key isn't present (and there're no tombstones on the probing sequence).
 // - has existing value if key is present.
 static Entry *findEntry(Entry *entries, int capacity,
-                        ObjString *key)
+                        Value *key)
 {
-    uint32_t index = key->hash % capacity;
+    uint32_t hash = getHash(*key);
+    uint32_t index = hash % capacity;
     Entry *tombstone = NULL;
 
     for (;;)
@@ -49,11 +62,8 @@ static Entry *findEntry(Entry *entries, int capacity,
                     tombstone = entry;
             }
         }
-        else if (entry->key == key)
+        else if (valuesEqual(*entry->key, *key))
         {
-            // Use (entry->key == key) since 'string interning' is used:
-            // - each sequence of characters is represented by only 1 string object.
-            //   -> pointer equality exactly matches value equality.
             return entry;
         }
 
@@ -79,7 +89,7 @@ static Entry *findEntry(Entry *entries, int capacity,
 
 // Find entry with key; Return True if found;
 // If entry exists, 'value' points to resulting value
-bool tableGet(Table *table, ObjString *key, Value *value)
+bool tableGet(Table *table, Value *key, Value *value)
 {
     if (table->count == 0)
         return false;
@@ -126,7 +136,7 @@ static void adjustCapacity(Table *table, int capacity)
 // Add key-value pair to hash table;
 // Overwrite value if entry is already present;
 // Return True if a new entry was added
-bool tableSet(Table *table, ObjString *key, Value value)
+bool tableSet(Table *table, Value *key, Value value)
 {
     if (table->count + 1 > table->capacity * TABLE_MAX_LOAD)
     {
@@ -149,7 +159,7 @@ bool tableSet(Table *table, ObjString *key, Value value)
 
 // Find entry with key;
 // If found, place a tombstone and return True
-bool tableDelete(Table *table, ObjString *key)
+bool tableDelete(Table *table, Value *key)
 {
     if (table->count == 0)
         return false;
@@ -204,11 +214,16 @@ ObjString *tableFindString(Table *table, const char *chars,
             // Stop if reached an empty (non-tombstone) entry
             return NULL; // not found
         }
-        else if (entry->key->length == length &&
-                 entry->key->hash == hash &&
-                 memcmp(entry->key->chars, chars, length) == 0)
+        else if (IS_STRING(*entry->key))
         {
-            return entry->key; // found
+            ObjString *stringKey = AS_STRING(*entry->key);
+            if (
+                stringKey->length == length &&
+                stringKey->hash == hash &&
+                memcmp(stringKey->chars, chars, length) == 0)
+            {
+                return AS_STRING(*entry->key); // found
+            }
         }
 
         index = (index + 1) % table->capacity;

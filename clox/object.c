@@ -32,7 +32,7 @@ static ObjString *allocateString(char *chars, int length,
     string->hash = hash;
 
     // Intern the unique string (deduplicate before we get here)
-    tableSet(&vm.strings, string, NIL_VAL);
+    tableSet(&vm.strings, &OBJ_VAL(string), NIL_VAL);
 
     return string;
 }
