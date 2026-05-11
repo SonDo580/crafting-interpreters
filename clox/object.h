@@ -27,6 +27,7 @@ struct ObjString
     Obj obj; // must be 1st field
     int length;
     char *chars;
+    uint32_t hash; // calculate once (Lox strings are immutable)
 };
 
 ObjString *takeString(char *chars, int length);
