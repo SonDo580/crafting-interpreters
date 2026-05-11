@@ -166,12 +166,16 @@ static InterpretResult run()
             tableSet(&vm.globals, name, peek(0));
             pop();
             break;
+            // don't pop the value until after we add it to the hash table
+            // (ensure VM can still find the value if garbage collection
+            //  is triggered during the adding process)
         }
         case OP_SET_GLOBAL:
         {
             ObjString *name = READ_STRING();
             if (tableSet(&vm.globals, name, peek(0)))
-            { // runtime error if variable hasn't been defined
+            { // variable hasn't been defined -> runtime error
+                // Must delete the added entry since REPL keeps running after runtime error
                 tableDelete(&vm.globals, name);
                 runtimeError("Undefined variable '%s'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
