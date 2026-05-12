@@ -4,18 +4,16 @@
 #include "chunk.h"
 #include "table.h"
 #include "value.h"
-
-#define STACK_MAX 256
+#include "vm_stack.h"
 
 typedef struct
 {
     Chunk *chunk;
     uint8_t *ip; // instruction pointer
-    Value stack[STACK_MAX];
-    Value *stackTop; // 1 past last item
-    Obj *objects;    // all allocated objects
-    Table globals;   // global variables
-    Table strings;   // all (unique) strings created
+    Stack stack;
+    Obj *objects;  // all allocated objects
+    Table globals; // global variables
+    Table strings; // all (unique) strings created
 } VM;
 
 typedef enum
@@ -30,7 +28,5 @@ extern VM vm;
 void initVM();
 void freeVM();
 InterpretResult interpret(const char *source);
-void push(Value value);
-Value pop();
 
 #endif

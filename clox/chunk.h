@@ -45,4 +45,10 @@ void freeChunk(Chunk *chunk);
 void writeChunk(Chunk *chunk, uint8_t byte, int line);
 int addConstant(Chunk *chunk, Value value);
 
+// read 2 bytes; interpret as Little Endian
+static inline uint16_t readLong(uint8_t *code)
+{
+    return (uint16_t)*code + (uint16_t)(*(code + 1) << 8);
+}
+
 #endif

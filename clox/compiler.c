@@ -55,8 +55,8 @@ typedef struct
 {
     // all locals that are in scope (all scopes)
     // - same order as declaration order
-    // - instruction operand to encode local is 1 byte -> limit number to UINT8_COUNT
-    Local locals[UINT8_COUNT];
+    // - instruction operand to encode local is 2 byte -> limit number to UINT16_COUNT
+    Local locals[UINT16_COUNT];
     int localCount; // how many locals are in scope (all scopes)
     int scopeDepth; // number of blocks surrounding currently compiling code
 } Compiler;
@@ -265,7 +265,7 @@ static int resolveLocal(Compiler *compiler, Token *name)
 // Add variable to compiler's list of variables in current scope
 static void addLocal(Token name)
 {
-    if (current->localCount == UINT8_COUNT)
+    if (current->localCount == UINT16_COUNT)
     {
         error("Too many local variables in function.");
         return;
@@ -411,11 +411,27 @@ static void namedVariable(Token name, bool canAssign)
     if (canAssign && match(TOKEN_EQUAL))
     { // setter or assignment
         expression();
-        emitBytes(setOp, (uint8_t)arg);
+        if (setOp == OP_SET_GLOBAL)
+        {
+            emitBytes(setOp, (uint8_t)arg);
+        }
+        else
+        { // local: write arg as uint16 in Little Endian
+            emitByte(setOp);
+            emitBytes((uint8_t)arg, arg >> 8);
+        }
     }
     else
     { // getter or variable access
-        emitBytes(getOp, (uint8_t)arg);
+        if (setOp == OP_GET_GLOBAL)
+        {
+            emitBytes(getOp, (uint8_t)arg);
+        }
+        else
+        { // local: write arg as uint16 in Little Endian
+            emitByte(getOp);
+            emitBytes((uint8_t)arg, arg >> 8);
+        }
     }
 }
 
