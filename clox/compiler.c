@@ -47,8 +47,9 @@ typedef struct
 
 typedef struct
 {
-    Token name; // variable name
-    int depth;  // scope depth of the block where the variable was declared
+    Token name;   // variable name
+    int depth;    // scope depth of the block where the variable was declared
+    bool isConst; // isConst = true -> single-assignment variable
 } Local;
 
 typedef struct
@@ -241,8 +242,8 @@ static bool identifiersEqual(Token *a, Token *b)
 
 // Return the variable index in 'locals' array,
 // which is the same as its VM stack slot;
-// Return -1 -> not found -> assumed to be global.
-static int resolveLocal(Compiler *compiler, Token *name)
+// Return -1 -> not found -> assumed to be global;
+static int resolveLocal(Compiler *compiler, Token *name, bool *isConst)
 {
     // Walk backward to find the last declared variable with the identifier
     // (inner local variables shadow outer ones with the same name)
@@ -255,15 +256,18 @@ static int resolveLocal(Compiler *compiler, Token *name)
             {
                 error("Can't read local variable in its own initializer.");
             }
+
+            *isConst = local->isConst;
             return i;
         }
     }
 
+    *isConst = false;
     return -1;
 }
 
 // Add variable to compiler's list of variables in current scope
-static void addLocal(Token name)
+static void addLocal(Token name, bool isConst)
 {
     if (current->localCount == UINT8_COUNT)
     {
@@ -274,10 +278,11 @@ static void addLocal(Token name)
     Local *local = &current->locals[current->localCount++];
     local->name = name;
     local->depth = -1; // uninitialized
+    local->isConst = isConst;
 }
 
 // Declare local variable
-static void declareVariable()
+static void declareVariable(bool isConst)
 {
     if (current->scopeDepth == 0)
         // Global variables are late bound (lookup value when executing)
@@ -302,7 +307,7 @@ static void declareVariable()
         }
     }
 
-    addLocal(*name);
+    addLocal(*name, isConst);
 }
 
 static void binary(bool canAssign)
@@ -393,7 +398,8 @@ static void string(bool canAssign)
 static void namedVariable(Token name, bool canAssign)
 {
     uint8_t getOp, setOp;
-    int arg = resolveLocal(current, &name);
+    bool isConst;
+    int arg = resolveLocal(current, &name, &isConst);
     if (arg != -1)
     { // local variable
         getOp = OP_GET_LOCAL;
@@ -410,6 +416,9 @@ static void namedVariable(Token name, bool canAssign)
     // currently in the context of a low-precedence expression
     if (canAssign && match(TOKEN_EQUAL))
     { // setter or assignment
+        if (isConst)
+            error("Assign to `const` variable.");
+
         expression();
         emitBytes(setOp, (uint8_t)arg);
     }
@@ -523,11 +532,11 @@ static void parsePrecedence(Precedence precedence)
     }
 }
 
-static uint8_t parseVariable(const char *errorMessage)
+static uint8_t parseVariable(bool isConst, const char *errorMessage)
 {
     consume(TOKEN_IDENTIFIER, errorMessage);
 
-    declareVariable();
+    declareVariable(isConst);
     if (current->scopeDepth > 0)
         return 0; // dummy (locals aren't looked up by names)
 
@@ -575,7 +584,7 @@ static void block()
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
 }
 
-static void varDeclaration()
+static void varDeclaration(bool isConst)
 {
     // Phases:
     // - Before compiling the initializer, mark the variable as uninitialized
@@ -594,7 +603,7 @@ static void varDeclaration()
     //   }
     // }
 
-    uint8_t global = parseVariable("Expect variable name.");
+    uint8_t global = parseVariable(isConst, "Expect variable name.");
 
     if (match(TOKEN_EQUAL))
     {
@@ -661,7 +670,11 @@ static void declaration()
 {
     if (match(TOKEN_VAR))
     {
-        varDeclaration();
+        varDeclaration(false);
+    }
+    else if (match(TOKEN_CONST))
+    {
+        varDeclaration(true);
     }
     else
     {
