@@ -7,7 +7,9 @@ Pick a keyword for a single-assignment variable form to add to Lox. Justify your
 ## Idea
 
 - Let `const` declare a single-assignment variable.
-- To support that:
-  - Local variables: add an extra field `isConst` to `Local` struct.
-  - Global variables: ?
-- Raise compile error if a `const` variable is set.
+- Local variables:
+  - Add an extra field `isConst` to `Local` struct.
+  - Raise **compile error** if a `const` variable is set.
+- Global variables:
+  - use an extra hash table to record which global variables are `const`
+  - Raise **interpret error** if a `const` variable is set or re-declare.

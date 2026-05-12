@@ -183,9 +183,35 @@ static InterpretResult run()
             // (ensure VM can still find the value if garbage collection
             //  is triggered during the adding process)
         }
+        case OP_DEFINE_CONST_GLOBAL:
+        {
+            ObjString *name = READ_STRING();
+
+            // Don't allow re-declare const variables
+            Value value;
+            if (tableGet(&vm.constGlobals, name, &value))
+            {
+                runtimeError("Re-declare global const variable '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            tableSet(&vm.globals, name, peek(0));
+            tableSet(&vm.constGlobals, name, NIL_VAL); // mark as const
+            pop();
+            break;
+        }
         case OP_SET_GLOBAL:
         {
             ObjString *name = READ_STRING();
+
+            // Don't allow assigning to const variables
+            Value value;
+            if (tableGet(&vm.constGlobals, name, &value))
+            {
+                runtimeError("Assign to global const variable '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
             if (tableSet(&vm.globals, name, peek(0)))
             { // variable hasn't been defined -> runtime error
                 // Must delete the added entry since REPL keeps running after runtime error

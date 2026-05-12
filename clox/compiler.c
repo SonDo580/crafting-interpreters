@@ -550,7 +550,7 @@ static void markInitialized()
     current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
-static void defineVariable(uint8_t global)
+static void defineVariable(uint8_t global, bool isConst)
 {
     if (current->scopeDepth > 0)
     {
@@ -561,7 +561,10 @@ static void defineVariable(uint8_t global)
         return;
     }
 
-    emitBytes(OP_DEFINE_GLOBAL, global);
+    if (isConst)
+        emitBytes(OP_DEFINE_CONST_GLOBAL, global);
+    else
+        emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
 static ParseRule *getRule(TokenType type)
@@ -616,7 +619,7 @@ static void varDeclaration(bool isConst)
     consume(TOKEN_SEMICOLON,
             "Expect ';' after variable declaration.");
 
-    defineVariable(global);
+    defineVariable(global, isConst);
 }
 
 static void expressionStatement()
