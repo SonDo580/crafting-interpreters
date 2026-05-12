@@ -123,7 +123,8 @@ static void skipWhitespace()
     }
 }
 
-// Return 'type' (keyword TokenType) if lexeme matches expected keyword
+// Return 'type' (keyword TokenType) if lexeme matches expected keyword;
+// Otherwise return TOKEN_IDENTIFIER
 static TokenType checkKeyword(int start, int length,
                               const char *rest, TokenType type)
 {
