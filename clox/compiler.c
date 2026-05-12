@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -44,7 +45,24 @@ typedef struct
     Precedence precedence;
 } ParseRule;
 
+typedef struct
+{
+    Token name; // variable name
+    int depth;  // scope depth of the block where the variable was declared
+} Local;
+
+typedef struct
+{
+    // all locals that are in scope (all scopes)
+    // - same order as declaration order
+    // - instruction operand to encode local is 1 byte -> limit number to UINT8_COUNT
+    Local locals[UINT8_COUNT];
+    int localCount; // how many locals are in scope (all scopes)
+    int scopeDepth; // number of blocks surrounding currently compiling code
+} Compiler;
+
 Parser parser;
+Compiler *current = NULL;
 Chunk *compilingChunk;
 
 static Chunk *currentChunk()
@@ -163,6 +181,13 @@ static void emitConstant(Value value)
     emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
+static void initCompiler(Compiler *compiler)
+{
+    compiler->localCount = 0;
+    compiler->scopeDepth = 0;
+    current = compiler;
+}
+
 static void endCompiler()
 {
     emitReturn();
@@ -173,6 +198,25 @@ static void endCompiler()
         disassembleChunk(currentChunk(), "code");
     }
 #endif
+}
+
+static void beginScope()
+{
+    current->scopeDepth++;
+}
+
+static void endScope()
+{
+    current->scopeDepth--;
+
+    // Discard local variables when popping a scope
+    while (current->localCount > 0 &&
+           current->locals[current->localCount - 1].depth >
+               current->scopeDepth)
+    {
+        emitByte(OP_POP);
+        current->localCount--;
+    }
 }
 
 static void expression();
@@ -186,6 +230,79 @@ static void parsePrecedence(Precedence precedence);
 static uint8_t identifierConstant(Token *name)
 {
     return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
+}
+
+static bool identifiersEqual(Token *a, Token *b)
+{
+    if (a->length != b->length)
+        return false;
+    return memcmp(a->start, b->start, a->length) == 0;
+}
+
+// Return the variable index in 'locals' array,
+// which is the same as its VM stack slot;
+// Return -1 -> not found -> assumed to be global.
+static int resolveLocal(Compiler *compiler, Token *name)
+{
+    // Walk backward to find the last declared variable with the identifier
+    // (inner local variables shadow outer ones with the same name)
+    for (int i = compiler->localCount - 1; i >= 0; i--)
+    {
+        Local *local = &compiler->locals[i];
+        if (identifiersEqual(name, &local->name))
+        {
+            if (local->depth == -1) // uninitialized (example: var a = a;)
+            {
+                error("Can't read local variable in its own initializer.");
+            }
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// Add variable to compiler's list of variables in current scope
+static void addLocal(Token name)
+{
+    if (current->localCount == UINT8_COUNT)
+    {
+        error("Too many local variables in function.");
+        return;
+    }
+
+    Local *local = &current->locals[current->localCount++];
+    local->name = name;
+    local->depth = -1; // uninitialized
+}
+
+// Declare local variable
+static void declareVariable()
+{
+    if (current->scopeDepth == 0)
+        // Global variables are late bound (lookup value when executing)
+        // -> compiler doesn't keep track of which declarations for them it has seen.
+        return;
+
+    Token *name = &parser.previous;
+
+    // Don't allow redeclaring local variable (same name in the same scope)
+    // Still allow shadowing (same name in different scopes)
+    for (int i = current->localCount - 1; i >= 0; i--)
+    {
+        Local *local = &current->locals[i];
+        if (local->depth != -1 && local->depth < current->scopeDepth)
+        { // reached outer scope; also skip just-added uninitialized local (depth = -1)
+            break;
+        }
+
+        if (identifiersEqual(name, &local->name))
+        {
+            error("Already a variable with this name in this scope.");
+        }
+    }
+
+    addLocal(*name);
 }
 
 static void binary(bool canAssign)
@@ -275,18 +392,30 @@ static void string(bool canAssign)
 
 static void namedVariable(Token name, bool canAssign)
 {
-    uint8_t arg = identifierConstant(&name);
+    uint8_t getOp, setOp;
+    int arg = resolveLocal(current, &name);
+    if (arg != -1)
+    { // local variable
+        getOp = OP_GET_LOCAL;
+        setOp = OP_SET_LOCAL;
+    }
+    else
+    { // global variable
+        arg = identifierConstant(&name);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+    }
 
     // Look for and consume the '=' only if
     // currently in the context of a low-precedence expression
     if (canAssign && match(TOKEN_EQUAL))
     { // setter or assignment
         expression();
-        emitBytes(OP_SET_GLOBAL, arg);
+        emitBytes(setOp, (uint8_t)arg);
     }
     else
     { // getter or variable access
-        emitBytes(OP_GET_GLOBAL, arg);
+        emitBytes(getOp, (uint8_t)arg);
     }
 }
 
@@ -397,12 +526,32 @@ static void parsePrecedence(Precedence precedence)
 static uint8_t parseVariable(const char *errorMessage)
 {
     consume(TOKEN_IDENTIFIER, errorMessage);
+
+    declareVariable();
+    if (current->scopeDepth > 0)
+        return 0; // dummy (locals aren't looked up by names)
+
     return identifierConstant(&parser.previous);
 }
 
-// Define a global variable
+// Mark variable as initialized
+// (replace sentinel value -1 with real scope depth)
+static void markInitialized()
+{
+    current->locals[current->localCount - 1].depth = current->scopeDepth;
+}
+
 static void defineVariable(uint8_t global)
 {
+    if (current->scopeDepth > 0)
+    {
+        // VM has executed code for local variable's initializer,
+        // and the value is sitting right on top of the stack.
+        // -> the temporaries simply become local variables
+        markInitialized();
+        return;
+    }
+
     emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
@@ -416,8 +565,35 @@ static void expression()
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
+static void block()
+{
+    while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF))
+    {
+        declaration();
+    }
+
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+}
+
 static void varDeclaration()
 {
+    // Phases:
+    // - Before compiling the initializer, mark the variable as uninitialized
+    //   (declare: variable is added to scope)
+    // - After compiling the initializer, mark the variable as initialized
+    //   (define: variable becomes available to use)
+    //
+    // Purpose:
+    // - Disallow local variables that refer to the same name in their initializer.
+    //
+    // Example:
+    // {
+    //   var a = "outer";
+    //   {
+    //     var a = a;
+    //   }
+    // }
+
     uint8_t global = parseVariable("Expect variable name.");
 
     if (match(TOKEN_EQUAL))
@@ -502,6 +678,12 @@ static void statement()
     {
         printStatement();
     }
+    else if (match(TOKEN_LEFT_BRACE))
+    {
+        beginScope();
+        block();
+        endScope();
+    }
     else
     {
         expressionStatement();
@@ -511,6 +693,8 @@ static void statement()
 bool compile(const char *source, Chunk *chunk)
 {
     initScanner(source);
+    Compiler compiler;
+    initCompiler(&compiler);
     compilingChunk = chunk;
 
     parser.hadError = false;
