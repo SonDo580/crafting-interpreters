@@ -71,13 +71,20 @@ java jlox.lox.Lox <script_path>
 
 ```bash
 cd clox
+make clean
 make
 ```
 
 ### Run
 
 ```bash
+# REPL
 ./clox
+# REPL with navigation and history support (without code change)
+rlwrap ./clox
+
+# execute code from file
+./clox <script_path>
 ```
 
 ### Debug
