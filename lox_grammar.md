@@ -19,6 +19,10 @@ statement      → exprStmt
                  | returnStmt
                  | whileStmt
                  | block
+                 | continueStmt
+
+continueStmt   → "continue" ";"
+
 returnStmt     → "return" expression? ";"
 forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
                  expression? ";"

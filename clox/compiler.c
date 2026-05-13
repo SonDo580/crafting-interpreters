@@ -262,8 +262,8 @@ static void endScope()
 }
 
 static void expression();
-static void declaration();
-static void statement();
+static void declaration(int loopStart);
+static void statement(int loopStart);
 static ParseRule *getRule(TokenType type);
 static void parsePrecedence(Precedence precedence);
 
@@ -646,11 +646,11 @@ static void expression()
     parsePrecedence(PREC_ASSIGNMENT);
 }
 
-static void block()
+static void block(int loopStart)
 {
     while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF))
     {
-        declaration();
+        declaration(loopStart);
     }
 
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
@@ -749,7 +749,7 @@ static void forStatement()
         patchJump(bodyJump);
     }
 
-    statement(); // body
+    statement(loopStart); // body
 
     // Jump back to increment code
     // (or top of 'for' loop if there's no increment)
@@ -765,7 +765,7 @@ static void forStatement()
     endScope();
 }
 
-static void ifStatement()
+static void ifStatement(int loopStart)
 {
     consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
     expression(); // condition
@@ -773,8 +773,8 @@ static void ifStatement()
 
     // jump over 'then' branch if condition is false
     int thenJump = emitJump(OP_JUMP_IF_FALSE);
-    emitByte(OP_POP); // condition is truthy -> pop before code of 'then' branch
-    statement();      // 'then' branch
+    emitByte(OP_POP);     // condition is truthy -> pop before code of 'then' branch
+    statement(loopStart); // 'then' branch
 
     // jump over 'else' branch after executing 'then' branch
     int elseJump = emitJump(OP_JUMP);
@@ -783,7 +783,7 @@ static void ifStatement()
     emitByte(OP_POP); // condition is falsy -> pop before code of 'else' branch
 
     if (match(TOKEN_ELSE))
-        statement(); // 'else' branch
+        statement(loopStart); // 'else' branch
     patchJump(elseJump);
 }
 
@@ -804,12 +804,27 @@ static void whileStatement()
     // skip body if condition is falsy
     int exitJump = emitJump(OP_JUMP_IF_FALSE);
 
-    emitByte(OP_POP); // discard condition value
-    statement();      // body
+    emitByte(OP_POP);     // discard condition value
+    statement(loopStart); // body
     emitLoop(loopStart);
 
     patchJump(exitJump);
     emitByte(OP_POP); // discard condition value
+}
+
+static void continueStatement(int loopStart)
+{   
+    if (loopStart == -1)
+        error("'continue' outside of loop.");
+
+    // Discard local variables in current scope
+    endScope();
+
+    // Jump back to start of current loop
+    // (or increment clause in case of 'for' loop)
+    emitLoop(loopStart);
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after 'continue'.");
 }
 
 // Skip tokens until reaching statement boundary;
@@ -845,7 +860,7 @@ static void synchronize()
     }
 }
 
-static void declaration()
+static void declaration(int loopStart)
 {
     if (match(TOKEN_VAR))
     {
@@ -853,14 +868,14 @@ static void declaration()
     }
     else
     {
-        statement();
+        statement(loopStart);
     }
 
     if (parser.panicMode)
         synchronize();
 }
 
-static void statement()
+static void statement(int loopStart)
 {
     if (match(TOKEN_PRINT))
     {
@@ -872,7 +887,7 @@ static void statement()
     }
     else if (match(TOKEN_IF))
     {
-        ifStatement();
+        ifStatement(loopStart);
     }
     else if (match(TOKEN_WHILE))
     {
@@ -881,8 +896,12 @@ static void statement()
     else if (match(TOKEN_LEFT_BRACE))
     {
         beginScope();
-        block();
+        block(loopStart);
         endScope();
+    }
+    else if (match(TOKEN_CONTINUE))
+    {
+        continueStatement(loopStart);
     }
     else
     {
@@ -904,7 +923,7 @@ bool compile(const char *source, Chunk *chunk)
 
     while (!match(TOKEN_EOF))
     {
-        declaration();
+        declaration(-1);
     }
 
     endCompiler();
