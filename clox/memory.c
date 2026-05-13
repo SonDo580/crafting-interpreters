@@ -23,11 +23,25 @@ void freeObject(Obj *object)
 {
     switch (object->type)
     {
+    case OBJ_FUNCTION:
+    {
+        ObjFunction *function = (ObjFunction *)object;
+        freeChunk(&function->chunk);
+        FREE(ObjFunction, object);
+        break;
+        // Don't need to explicitly free the function's name (an ObjString)
+        // Let the garbage collector manages its lifetime
+    }
+    case OBJ_NATIVE:
+        FREE(ObjNative, object);
+        break;
     case OBJ_STRING:
+    {
         ObjString *string = (ObjString *)object;
         FREE_ARRAY(char, string->chars, string->length + 1);
         FREE(ObjString, object);
         break;
+    }
     }
 }
 
