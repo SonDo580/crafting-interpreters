@@ -271,6 +271,10 @@ static InterpretResult run()
             vm.ip -= offset; // jump backward to loopStart
             break;
         }
+        case OP_DUPLICATE:
+            // duplicate top of stack
+            push(peek(0));
+            break;
         case OP_RETURN:
             // Exit the interpreter
             return INTERPRET_OK;

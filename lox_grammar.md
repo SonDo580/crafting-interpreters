@@ -19,6 +19,13 @@ statement      → exprStmt
                  | returnStmt
                  | whileStmt
                  | block
+                 | switchStmt
+
+switchStmt     → "switch" "(" expression ")"
+                 "{" switchCase* defaultCase? "}"
+switchCase     → "case" expression ":" statement*
+defaultCase    → "default" ":" statement*
+
 returnStmt     → "return" expression? ";"
 forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
                  expression? ";"

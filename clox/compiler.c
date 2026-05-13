@@ -787,6 +787,87 @@ static void ifStatement()
     patchJump(elseJump);
 }
 
+#define MAX_CASES 10
+
+static void switchStatement()
+{
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+    expression(); // switch value
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after switch value.");
+
+    consume(TOKEN_LEFT_BRACE, "Expect '{'.");
+
+    // - All cases need code to jump to end of 'switch' statement
+    //   -> Need to patch placeholders at different offsets
+    //   -> Keep an array of offsets of jump instructions (to end of 'switch')
+    //
+    // - We can use a dynamic array, but for simplicity I'll use a fixed array
+    //   and limit number of cases to 10 (arbitrary chosen)
+
+    int jumpToEndOffsets[MAX_CASES];
+    int caseCount = 0;
+    int jumpToNext = -1;
+
+    while (match(TOKEN_CASE))
+    {
+        if (caseCount == MAX_CASES)
+            error("Too many cases in 'switch' statement.");
+
+        // Patch jump-to-next offset for previous case
+        if (jumpToNext != -1)
+        {
+            patchJump(jumpToNext);
+            emitByte(OP_POP); // discard (switch_value == case_expression) result of previous case
+        }
+
+        // Duplicate switch_value before comparison
+        // (switch_value is used by all cases)
+        emitByte(OP_DUPLICATE);
+
+        expression(); // case expression
+        consume(TOKEN_COLON, "Expect ':' after case expression.");
+
+        // Jump to next case if switch_value != case_expression
+        emitByte(OP_EQUAL);
+        jumpToNext = emitJump(OP_JUMP_IF_FALSE);
+
+        // Otherwise, execute code and jump to end of 'switch' statement
+        emitByte(OP_POP); // discard (switch_value == case_expression) result
+
+        while (!check(TOKEN_CASE) &&
+               !check(TOKEN_DEFAULT) &&
+               !check(TOKEN_RIGHT_BRACE))
+            statement();
+
+        jumpToEndOffsets[caseCount++] = emitJump(OP_JUMP);
+    }
+
+    // (optional) default case
+    if (match(TOKEN_DEFAULT))
+    {
+        // Patch jump-to-next offset of the last 'case'
+        if (jumpToNext != -1)
+        {
+            patchJump(jumpToNext);
+            emitByte(OP_POP); // discard (switch_value == case_expression) result of last case
+        }
+
+        consume(TOKEN_COLON, "Expect ':' after 'default'.");
+        while (!check(TOKEN_RIGHT_BRACE))
+            statement();
+    }
+
+
+    // Patch jump-to-end offset for all cases
+    for (int i = 0; i < caseCount; i++)
+    {
+        patchJump(jumpToEndOffsets[i]);
+    }
+
+    emitByte(OP_POP); // discard switch_value
+    consume(TOKEN_RIGHT_BRACE, "Expect '}'.");
+}
+
 static void printStatement()
 {
     expression();
@@ -877,6 +958,10 @@ static void statement()
     else if (match(TOKEN_WHILE))
     {
         whileStatement();
+    }
+    else if (match(TOKEN_SWITCH))
+    {
+        switchStatement();
     }
     else if (match(TOKEN_LEFT_BRACE))
     {
