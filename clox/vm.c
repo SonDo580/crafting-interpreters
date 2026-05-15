@@ -24,7 +24,9 @@ static void resetStack()
     vm.frameCount = 0;
 }
 
-static void runtimeError(const char *format, ...)
+static void runtimeError(
+    uint16_t ip, // ip for current function's code
+    const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -39,7 +41,7 @@ static void runtimeError(const char *format, ...)
         CallFrame *frame = &vm.frames[i];
         ObjFunction *function = frame->function;
         // (-1 since the interpreter advances past an instruction before executing it)
-        size_t instruction = (frame->ip - 1) - frame->function->chunk.code;
+        size_t instruction = ip - 1;
         int line = function->chunk.lines[instruction];
 
         fprintf(stderr, "[line %d] in ", line);
@@ -51,6 +53,11 @@ static void runtimeError(const char *format, ...)
         {
             fprintf(stderr, "%s()\n", function->name->chars);
         }
+
+        // Load ip for caller
+        // current frame: ... | callee | ...args | caller's ip | ...
+        //                      ^ slots
+        ip = (uint16_t)AS_NUMBER(frame->slots[frame->function->arity + 1]);
     }
 
     resetStack();
@@ -106,49 +113,62 @@ static Value peek(int distance)
 }
 
 // Initialize the next CallFrame on the stack
-static bool call(ObjFunction *function, int argCount)
+static bool call(
+    ObjFunction *function, int argCount,
+    uint16_t ip // caller's ip
+)
 {
     if (argCount != function->arity)
     {
-        runtimeError("Expect %d arguments but got %d.",
+        runtimeError(ip, "Expect %d arguments but got %d.",
                      function->arity, argCount);
         return false;
     }
 
     if (vm.frameCount == FRAMES_MAX)
     {
-        runtimeError("Stack overflow.");
+        runtimeError(ip, "Stack overflow.");
         return false;
     }
 
     CallFrame *frame = &vm.frames[vm.frameCount++];
     frame->function = function;
-    frame->ip = function->chunk.code;
-    frame->slots = (vm.stackTop - 1) - argCount;
+    frame->slots = (vm.stackTop - 1) - 1 - argCount; // -1 to move past caller's ip
     // frame->slots points to current function, parameters start from slot 1
     return true;
 }
 
-static bool callValue(Value callee, int argCount)
+static bool callValue(
+    Value callee, int argCount,
+    uint16_t ip // caller's ip
+)
 {
     if (IS_OBJ(callee))
     {
         switch (OBJ_TYPE(callee))
         {
         case OBJ_FUNCTION:
-            return call(AS_FUNCTION(callee), argCount);
+            return call(AS_FUNCTION(callee), argCount, ip);
         case OBJ_NATIVE:
             NativeFn native = AS_NATIVE(callee);
-            Value result = native(argCount, vm.stackTop - argCount);
-            vm.stackTop -= argCount + 1;
-            push(result);
+            Value result = native(
+                argCount, vm.stackTop - 1 - argCount); // -1 to adjust for caller's ip
+
+            // Save caller's ip before discard callee's stack window
+            // - use the top byte on VM stack since return value of
+            //   native function is not pushed onto stack "automatically"
+            Value callerIpValue = pop();
+
+            vm.stackTop -= argCount + 1 + 1; // discard callee's frame (function, args, caller's ip)
+            push(callerIpValue);             // push caller's ip back (to restore by OP_RETURN handler)
+            push(result);                    // push return value
             return true;
         default:
             break; // non-callable object type
         }
     }
 
-    runtimeError("Can only call functions and classes.");
+    runtimeError(ip, "Can only call functions and classes.");
     return false;
 }
 
@@ -176,28 +196,32 @@ static InterpretResult run()
 {
     CallFrame *frame = &vm.frames[vm.frameCount - 1]; // current frame
 
-#define READ_BYTE() (*frame->ip++)
+    register uint16_t ip;
+    ip = 0;
 
-#define READ_SHORT() \
-    (frame->ip += 2, \
-     (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1])) // byte order: big-endian
+#define READ_BYTE() (frame->function->chunk.code[ip++])
+
+#define READ_SHORT()                                         \
+    (ip += 2,                                                \
+     (uint16_t)((frame->function->chunk.code[ip - 2] << 8) | \
+                frame->function->chunk.code[ip - 1])) // byte order: big-endian
 
 #define READ_CONSTANT() \
     (frame->function->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 
-#define BINARY_OP(valueType, op)                        \
-    do                                                  \
-    {                                                   \
-        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) \
-        {                                               \
-            runtimeError("Operands must be numbers.");  \
-            return INTERPRET_RUNTIME_ERROR;             \
-        }                                               \
-        double b = AS_NUMBER(pop());                    \
-        double a = AS_NUMBER(pop());                    \
-        push(valueType(a op b));                        \
+#define BINARY_OP(valueType, op)                           \
+    do                                                     \
+    {                                                      \
+        if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1)))    \
+        {                                                  \
+            runtimeError(ip, "Operands must be numbers."); \
+            return INTERPRET_RUNTIME_ERROR;                \
+        }                                                  \
+        double b = AS_NUMBER(pop());                       \
+        double a = AS_NUMBER(pop());                       \
+        push(valueType(a op b));                           \
     } while (false)
     /*
     do {...} while (false) <-> {...}, but allow semicolon at the end.
@@ -221,8 +245,7 @@ static InterpretResult run()
         }
         printf("\n");
 
-        disassembleInstruction(&frame->function->chunk,
-                               (int)(frame->ip - frame->function->chunk.code));
+        disassembleInstruction(&frame->function->chunk, ip);
 #endif
 
         uint8_t instruction;
@@ -259,12 +282,11 @@ static InterpretResult run()
         }
         case OP_GET_GLOBAL:
         {
-
             ObjString *name = READ_STRING();
             Value value;
             if (!tableGet(&vm.globals, name, &value))
             {
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError(ip, "Undefined variable '%s'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(value);
@@ -287,7 +309,7 @@ static InterpretResult run()
             { // variable hasn't been defined -> runtime error
                 // Must delete the added entry since REPL keeps running after runtime error
                 tableDelete(&vm.globals, name);
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError(ip, "Undefined variable '%s'.", name->chars);
                 return INTERPRET_RUNTIME_ERROR;
             }
             // don't pop (assignment is an expression)
@@ -317,7 +339,7 @@ static InterpretResult run()
             }
             else
             {
-                runtimeError("Operands must be 2 numbers or 2 strings.");
+                runtimeError(ip, "Operands must be 2 numbers or 2 strings.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
@@ -336,7 +358,7 @@ static InterpretResult run()
         case OP_NEGATE:
             if (!IS_NUMBER(peek(0)))
             {
-                runtimeError("Operand must be a number.");
+                runtimeError(ip, "Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(NUMBER_VAL(-AS_NUMBER(pop())));
@@ -348,21 +370,21 @@ static InterpretResult run()
         case OP_JUMP:
         {
             uint16_t offset = READ_SHORT();
-            frame->ip += offset;
+            ip += offset;
             break;
         }
         case OP_JUMP_IF_FALSE:
         {
             uint16_t offset = READ_SHORT();
             if (isFalsy(peek(0)))
-                frame->ip += offset;
+                ip += offset;
             // don't pop condition value (used for short-circuiting by logical operators)
             break;
         }
         case OP_LOOP:
         {
             uint16_t offset = READ_SHORT();
-            frame->ip -= offset; // jump backward to loopStart
+            ip -= offset; // jump backward to loopStart
             break;
         }
         case OP_CALL:
@@ -375,9 +397,15 @@ static InterpretResult run()
             //   exactly line up with the arguments.
             //   (caller's stack and caller's stack are windows on the actual VM stack)
 
+            // Push caller's ip to callee's stack window (right after parameters)
+            // (instruction to execute after retuning from callee)
+            push(NUMBER_VAL(ip + 1)); // instruction right after 'argCount'
+
+            int oldFrameCount = vm.frameCount;
+
             int argCount = READ_BYTE();
-            // find function: count past the argument slots from top of stack
-            if (!callValue(peek(argCount), argCount))
+            // find function: count past argument slots and caller's ip from top of stack
+            if (!callValue(peek(argCount + 1), argCount, ip))
             {
                 return INTERPRET_RUNTIME_ERROR;
             }
@@ -385,14 +413,23 @@ static InterpretResult run()
             // if callValue() is successful, there will be a new CallFrame
             // (native function calls don't create new CallFrame)
             frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
+
+            // set ip for new frame
+            if (vm.frameCount > oldFrameCount)
+                ip = 0;
+
             break;
         }
         case OP_RETURN:
             Value result = pop(); // save returned value
-            vm.frameCount--;      // discard CallFrame of the returning function
-            if (vm.frameCount == 0)
-            { // finish executing top-level code
-                pop();
+
+            // restore caller's ip (instruction to execute next)
+            ip = (uint16_t)AS_NUMBER(pop());
+
+            vm.frameCount--;        // discard CallFrame of the returning function
+            if (vm.frameCount == 0) // finish executing top-level code
+            {
+                pop(); // discard top-level function entry
                 return INTERPRET_OK;
             }
 
@@ -417,7 +454,8 @@ InterpretResult interpret(const char *source)
         return INTERPRET_COMPILE_ERROR;
 
     push(OBJ_VAL(function)); // Store the top-level function at stack slot 0
-    call(function, 0);       // Set up initial CallFrame
+    push(NUMBER_VAL(0));     // dummy caller's ip for top-level function
 
+    call(function, 0, 0); // Set up initial CallFrame
     return run();
 }
