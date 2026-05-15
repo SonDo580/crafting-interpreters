@@ -58,13 +58,14 @@ static void runtimeError(const char *format, ...)
 
 // - function: pointer to a C function
 // - name: name it will be known as in Lox
-static void defineNative(const char *name, NativeFn function)
+static void defineNative(const char *name, NativeFn function,
+                         bool isVariadic, int minArity)
 {
     // copyString() and newNative() dynamically allocate memory
     // -> can trigger garbage collection
     // -> push on stack so GC doesn't free them
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
-    push(OBJ_VAL(newNative(function)));
+    push(OBJ_VAL(newNative(function, isVariadic, minArity)));
     tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
     pop();
     pop();
@@ -78,7 +79,7 @@ void initVM()
     initTable(&vm.globals);
     initTable(&vm.strings);
 
-    defineNative("clock", clockNative);
+    defineNative("clock", clockNative, false, 0);
 }
 
 void freeVM()
@@ -138,8 +139,21 @@ static bool callValue(Value callee, int argCount)
         case OBJ_FUNCTION:
             return call(AS_FUNCTION(callee), argCount);
         case OBJ_NATIVE:
-            NativeFn native = AS_NATIVE(callee);
-            Value result = native(argCount, vm.stackTop - argCount);
+            ObjNative *native = AS_NATIVE(callee);
+            if (native->isVariadic && argCount < native->minArity)
+            {
+                runtimeError("Expect >= %d arguments but got %d.",
+                             native->minArity, argCount);
+                return false;
+            }
+            else if (argCount != native->minArity)
+            {
+                runtimeError("Expect %d arguments but got %d.",
+                             native->minArity, argCount);
+                return false;
+            }
+
+            Value result = native->function(argCount, vm.stackTop - argCount);
             vm.stackTop -= argCount + 1;
             push(result);
             return true;
