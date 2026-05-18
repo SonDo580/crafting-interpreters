@@ -11,9 +11,9 @@
 // represent an ongoing function call
 typedef struct
 {
-    ObjFunction *function; // function being called
-    uint8_t *ip;  // instruction pointer (to current function's code)
-    Value *slots; // 1st slot on VM's stack this function can use (base pointer / frame pointer)
+    ObjClosure *closure; // function being called
+    uint8_t *ip;         // instruction pointer (to current function's code)
+    Value *slots;        // 1st slot on VM's stack this function can use (base pointer / frame pointer)
 
     // Instead of storing return address in callee's frame, caller stores its own 'ip'
     // When we return from a function, VM will jump to 'ip' of caller's CallFrame and resume
@@ -24,10 +24,11 @@ typedef struct
     CallFrame frames[FRAMES_MAX];
     int frameCount;
     Value stack[STACK_MAX];
-    Value *stackTop; // 1 past last item
-    Obj *objects;    // all allocated objects
-    Table globals;   // global variables
-    Table strings;   // all (unique) strings created
+    Value *stackTop;          // 1 past last item
+    Table globals;            // global variables
+    Table strings;            // all (unique) strings created
+    ObjUpvalue *openUpvalues; // all open upvalues (still on stack)
+    Obj *objects;             // all allocated objects
 } VM;
 
 typedef enum
