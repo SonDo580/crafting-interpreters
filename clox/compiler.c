@@ -402,7 +402,7 @@ static int resolveUpvalue(Compiler *compiler, Token *name)
     // Resolve as upvalue of any enclosing function (recursive).
     // All (function + compiler)s on the chain will add the resolved value.
     int upvalue = resolveUpvalue(compiler->enclosing, name);
-    if (upvalue != 1)
+    if (upvalue != -1)
     {
         return addUpvalue(compiler, (uint8_t)upvalue, false);
     }
