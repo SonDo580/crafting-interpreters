@@ -75,6 +75,12 @@ void initVM()
 {
     resetStack();
     vm.objects = NULL;
+    vm.bytesAllocated = 0;
+    vm.nextGC = 1024 * 1024; // arbitrary
+
+    vm.grayCount = 0;
+    vm.grayCapacity = 0;
+    vm.grayStack = NULL;
 
     initTable(&vm.globals);
     initTable(&vm.strings);
@@ -211,8 +217,10 @@ static bool isFalsy(Value value)
 
 static void concatenate()
 {
-    ObjString *b = AS_STRING(pop());
-    ObjString *a = AS_STRING(pop());
+    // Require allocating new character array on the heap, which can trigger a GC
+    // -> only pop operands after the result string has been created
+    ObjString *b = AS_STRING(peek(0));
+    ObjString *a = AS_STRING(peek(1));
 
     int length = a->length + b->length;
     char *chars = ALLOCATE(char, length + 1);
@@ -221,6 +229,8 @@ static void concatenate()
     chars[length] = '\0';
 
     ObjString *result = takeString(chars, length);
+    pop();
+    pop();
     push(OBJ_VAL(result));
 }
 

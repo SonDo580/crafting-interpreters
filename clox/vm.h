@@ -28,7 +28,13 @@ typedef struct
     Table globals;            // global variables
     Table strings;            // all (unique) strings created
     ObjUpvalue *openUpvalues; // all open upvalues (still on stack)
-    Obj *objects;             // all allocated objects
+
+    size_t bytesAllocated;
+    size_t nextGC; // threshold that triggers the next collection
+    Obj *objects;  // all allocated objects
+    int grayCount;
+    int grayCapacity;
+    Obj **grayStack;
 } VM;
 
 typedef enum

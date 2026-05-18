@@ -14,10 +14,15 @@ static Obj *allocateObject(size_t size, ObjType type)
 {
     Obj *object = (Obj *)reallocate(NULL, 0, size);
     object->type = type;
+    object->isMarked = false;
 
     // insert to all-objects linked-list
     object->next = vm.objects;
     vm.objects = object;
+
+#ifdef DEBUG_LOG_GC
+    printf("%p allocate %zu for %d\n", (void *)object, size, type);
+#endif
 
     return object;
 }
@@ -63,8 +68,13 @@ static ObjString *allocateString(char *chars, int length,
     string->chars = chars;
     string->hash = hash;
 
+    // Push onto stack temporarily and pop after added
+    // (resizing string pool can trigger a GC)
+    push(OBJ_VAL(string));
+
     // Intern the unique string (deduplicate before we get here)
     tableSet(&vm.strings, string, NIL_VAL);
+    pop();
 
     return string;
 }

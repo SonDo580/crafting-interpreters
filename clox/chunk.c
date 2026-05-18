@@ -2,6 +2,7 @@
 
 #include "chunk.h"
 #include "memory.h"
+#include "vm.h"
 
 void initChunk(Chunk *chunk)
 {
@@ -40,6 +41,10 @@ void writeChunk(Chunk *chunk, uint8_t byte, int line)
 // Return the index where the constant was appended
 int addConstant(Chunk *chunk, Value value)
 {
+    // Push onto stack temporarily and pop after added
+    // (resizing constants table can trigger a GC)
+    push(value);
     writeValueArray(&chunk->constants, value);
+    pop();
     return chunk->constants.count - 1;
 }

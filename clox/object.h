@@ -18,6 +18,11 @@
 #define AS_STRING(value) ((ObjString *)AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
 
+/* Struct inheritance:
+- All struct types representing different object types must have their 1st field be an Obj.
+- We can take a pointer to a struct and convert it to a pointer of that 1st field and back.
+*/
+
 typedef enum
 {
     OBJ_CLOSURE,
@@ -30,12 +35,13 @@ typedef enum
 struct Obj
 {
     ObjType type;
+    bool isMarked;
     struct Obj *next; // next Obj in all-objects linked-list
 };
 
 typedef struct
 {
-    Obj obj;   // must be 1st field
+    Obj obj;
     int arity; // number of parameters
     int upvalueCount;
     Chunk chunk;
@@ -46,13 +52,13 @@ typedef Value (*NativeFn)(int argCount, Value *args);
 
 typedef struct
 {
-    Obj obj;           // must be 1st field
+    Obj obj;
     NativeFn function; // pointer to the C function that implement the native behavior
 } ObjNative;
 
 struct ObjString
 {
-    Obj obj; // must be 1st field
+    Obj obj;
     int length;
     char *chars;
     uint32_t hash; // calculate once (Lox strings are immutable)
@@ -69,7 +75,7 @@ typedef struct ObjUpvalue
 // Function + captured environment
 typedef struct
 {
-    Obj obj; // must be 1st field
+    Obj obj;
     ObjFunction *function;
     ObjUpvalue **upvalues; // pointer to dynamic array of pointers to upvalues
     int upvalueCount;

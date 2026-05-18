@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include "compiler.h"
+#include "memory.h"
 #include "scanner.h"
 
 #ifdef DEBUG_PRINT_CODE
@@ -299,7 +300,7 @@ static void endScope()
     {
         if (current->locals[current->localCount - 1].isCaptured)
         { // Hoist onto the heap if being closed-over
-            emitByte(OP_CLOSE_UPVALUE); 
+            emitByte(OP_CLOSE_UPVALUE);
         }
         else
         { // Otherwise just discard it
@@ -1126,4 +1127,14 @@ ObjFunction *compile(const char *source)
 
     ObjFunction *function = endCompiler();
     return parser.hadError ? NULL : function;
+}
+
+void markCompilerRoots()
+{
+    Compiler *compiler = current;
+    while (compiler != NULL)
+    {
+        markObject((Obj *)compiler->function);
+        compiler = compiler->enclosing;
+    }
 }
