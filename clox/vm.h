@@ -11,9 +11,9 @@
 // represent an ongoing function call
 typedef struct
 {
-    ObjClosure *closure; // function being called
-    uint8_t *ip;         // instruction pointer (to current function's code)
-    Value *slots;        // 1st slot on VM's stack this function can use (base pointer / frame pointer)
+    Value callable; // function or closure being called
+    uint8_t *ip;     // instruction pointer (to current function's code)
+    Value *slots;    // 1st slot on VM's stack this function can use (base pointer / frame pointer)
 
     // Instead of storing return address in callee's frame, caller stores its own 'ip'
     // When we return from a function, VM will jump to 'ip' of caller's CallFrame and resume

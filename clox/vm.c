@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -25,6 +26,26 @@ static void resetStack()
     vm.openUpvalues = NULL;
 }
 
+static ObjFunction *asFunction(Value callable)
+{
+    if (IS_FUNCTION(callable))
+        return AS_FUNCTION(callable);
+    if (IS_CLOSURE(callable))
+        return AS_CLOSURE(callable)->function;
+
+    fprintf(stderr, "Expect callable.");
+    exit(EXIT_FAILURE);
+}
+
+static ObjClosure *asClosure(Value callable)
+{
+    if (IS_CLOSURE(callable))
+        return AS_CLOSURE(callable);
+
+    fprintf(stderr, "Expect closure.");
+    exit(EXIT_FAILURE);
+}
+
 static void runtimeError(const char *format, ...)
 {
     va_list args;
@@ -38,7 +59,7 @@ static void runtimeError(const char *format, ...)
     for (int i = vm.frameCount - 1; i >= 0; i--)
     {
         CallFrame *frame = &vm.frames[i];
-        ObjFunction *function = frame->closure->function;
+        ObjFunction *function = asFunction(frame->callable);
         // (-1 since the interpreter advances past an instruction before executing it)
         size_t instruction = (frame->ip - 1) - function->chunk.code;
         int line = function->chunk.lines[instruction];
@@ -107,12 +128,14 @@ static Value peek(int distance)
 }
 
 // Initialize the next CallFrame on the stack
-static bool call(ObjClosure *closure, int argCount)
+static bool call(Value callable, int argCount)
 {
-    if (argCount != closure->function->arity)
+    ObjFunction *function = asFunction(callable);
+
+    if (argCount != function->arity)
     {
         runtimeError("Expect %d arguments but got %d.",
-                     closure->function->arity, argCount);
+                     function->arity, argCount);
         return false;
     }
 
@@ -123,8 +146,8 @@ static bool call(ObjClosure *closure, int argCount)
     }
 
     CallFrame *frame = &vm.frames[vm.frameCount++];
-    frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
+    frame->callable = callable;
+    frame->ip = function->chunk.code;
     frame->slots = (vm.stackTop - 1) - argCount;
     // frame->slots points to current function, parameters start from slot 1
     return true;
@@ -137,7 +160,8 @@ static bool callValue(Value callee, int argCount)
         switch (OBJ_TYPE(callee))
         {
         case OBJ_CLOSURE:
-            return call(AS_CLOSURE(callee), argCount);
+        case OBJ_FUNCTION:
+            return call(callee, argCount);
         case OBJ_NATIVE:
             NativeFn native = AS_NATIVE(callee);
             Value result = native(argCount, vm.stackTop - argCount);
@@ -235,7 +259,7 @@ static InterpretResult run()
      (uint16_t)((frame->ip[-2] << 8) | frame->ip[-1])) // byte order: big-endian
 
 #define READ_CONSTANT() \
-    (frame->closure->function->chunk.constants.values[READ_BYTE()])
+    (asFunction(frame->callable)->chunk.constants.values[READ_BYTE()])
 
 #define READ_STRING() AS_STRING(READ_CONSTANT())
 
@@ -274,8 +298,8 @@ static InterpretResult run()
         printf("\n");
 
         disassembleInstruction(
-            &frame->closure->function->chunk,
-            (int)(frame->ip - frame->closure->function->chunk.code));
+            &asFunction(frame->callable)->chunk,
+            (int)(frame->ip - asFunction(frame->callable)->chunk.code));
 #endif
 
         uint8_t instruction;
@@ -349,13 +373,13 @@ static InterpretResult run()
         case OP_GET_UPVALUE:
         {
             uint8_t slot = READ_BYTE();
-            push(*frame->closure->upvalues[slot]->location);
+            push(*asClosure(frame->callable)->upvalues[slot]->location);
             break;
         }
         case OP_SET_UPVALUE:
         {
             uint8_t slot = READ_BYTE();
-            *frame->closure->upvalues[slot]->location = peek(0);
+            *asClosure(frame->callable)->upvalues[slot]->location = peek(0);
             // don't pop (assignment is an expression)
             break;
         }
@@ -459,19 +483,15 @@ static InterpretResult run()
             push(OBJ_VAL(closure));
 
             // Fill the upvalue array
-            // (Note that current function is enclosing function of newly created closure)
             for (int i = 0; i < closure->upvalueCount; i++)
             {
-                uint8_t isLocal = READ_BYTE();
                 uint8_t index = READ_BYTE();
-                if (isLocal)
-                { // upvalue is enclosing function's local
-                    closure->upvalues[i] = captureUpvalue(frame->slots + index);
-                }
-                else
-                { // upvalue is enclosing function's upvalue
-                    closure->upvalues[i] = frame->closure->upvalues[index];
-                }
+                uint8_t hop = READ_BYTE();
+
+                // Hop to function where the closed-over variable lives
+                // Current function is enclosing function of newly created closure <-> hop = 1
+                CallFrame *destFrame = &vm.frames[vm.frameCount - hop];
+                closure->upvalues[i] = captureUpvalue(destFrame->slots + index);
             }
 
             break;
@@ -512,14 +532,9 @@ InterpretResult interpret(const char *source)
     if (function == NULL)
         return INTERPRET_COMPILE_ERROR;
 
-    // newClosure() allocate memory dynamically -> can trigger garbage collection
-    // -> push 'function' (no references) to stack so it is not freed,
-    //    pop it after the closure has been created.
-    push(OBJ_VAL(function));
-    ObjClosure *closure = newClosure(function);
-    pop();
-    push(OBJ_VAL(closure)); // put top-level closure at stack slot 0
-    call(closure, 0);       // set up initial CallFrame
+    Value functionValue = OBJ_VAL(function);
+    push(functionValue);    // put top-level function at stack slot 0
+    call(functionValue, 0); // set up initial CallFrame
 
     return run();
 }

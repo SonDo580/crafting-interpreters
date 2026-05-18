@@ -54,8 +54,9 @@ typedef struct
 
 typedef struct
 {
-    uint8_t index; // enclosing function's local slot OR enclosing function's upvalue index
+    uint8_t hop;   // number of hops to enclosing function where the closed-over variable lives
     bool isLocal;  // True -> enclosing function's local; False -> enclosing function's upvalue
+    uint8_t index; // enclosing function's local slot OR enclosing function's upvalue index
 } Upvalue;
 
 typedef enum
@@ -299,7 +300,7 @@ static void endScope()
     {
         if (current->locals[current->localCount - 1].isCaptured)
         { // Hoist onto the heap if being closed-over
-            emitByte(OP_CLOSE_UPVALUE); 
+            emitByte(OP_CLOSE_UPVALUE);
         }
         else
         { // Otherwise just discard it
@@ -354,7 +355,8 @@ static int resolveLocal(Compiler *compiler, Token *name)
 
 // Get or add upvalue to current (function + compiler);
 // Return existing index of index after added
-static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
+static int addUpvalue(
+    Compiler *compiler, uint8_t index, uint8_t hop)
 {
     int upvalueCount = compiler->function->upvalueCount;
 
@@ -362,7 +364,8 @@ static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
     for (int i = 0; i < upvalueCount; i++)
     {
         Upvalue *upvalue = &compiler->upvalues[i];
-        if (upvalue->index == index && upvalue->isLocal == isLocal)
+        if (upvalue->index == index &&
+            upvalue->hop == hop)
         {
             return i;
         }
@@ -375,8 +378,8 @@ static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
     }
 
     // Add new upvalue
-    compiler->upvalues[upvalueCount].isLocal = isLocal;
     compiler->upvalues[upvalueCount].index = index;
+    compiler->upvalues[upvalueCount].hop = hop;
     return compiler->function->upvalueCount++;
 }
 
@@ -386,28 +389,28 @@ static int addUpvalue(Compiler *compiler, uint8_t index, bool isLocal)
 // (upvalue index: index in 'upvalues' array of current compiler)
 static int resolveUpvalue(Compiler *compiler, Token *name)
 {
-    if (compiler->enclosing == NULL) // reached outermost function
-        return -1;
-
-    // Resolve as local variable in enclosing function
-    int local = resolveLocal(compiler->enclosing, name);
-    if (local != -1)
+    int hop = 1;
+    Compiler *currCompiler = compiler;
+    while (currCompiler->enclosing != NULL)
     {
-        // Mark the local variable as being captured
-        // (hoist to the heap when enclosing function's stack is discarded)
-        compiler->enclosing->locals[local].isCaptured = true;
-        return addUpvalue(compiler, (uint8_t)local, true);
+        // Resolve as local variable in enclosing function
+        int local = resolveLocal(currCompiler->enclosing, name);
+        if (local != -1)
+        {
+            // Mark the local variable as being captured
+            // (hoist to the heap when enclosing function's stack is discarded)
+            currCompiler->enclosing->locals[local].isCaptured = true;
+            
+            // Only add upvalue to (function + compiler) that inits resolveUpvalue 
+            return addUpvalue(compiler, (uint8_t)local, hop); 
+        }
+
+        // Move to enclosing function's enclosing
+        currCompiler = currCompiler->enclosing;
+        hop++;
     }
 
-    // Resolve as upvalue of any enclosing function (recursive).
-    // All (function + compiler)s on the chain will add the resolved value.
-    int upvalue = resolveUpvalue(compiler->enclosing, name);
-    if (upvalue != 1)
-    {
-        return addUpvalue(compiler, (uint8_t)upvalue, false);
-    }
-
-    return -1;
+    return -1; // reached outermost function (implicit top-level function)
 }
 
 // Add variable to compiler's list of variables in current scope
@@ -830,13 +833,20 @@ static void function(FunctionType type)
     // beginScope() doesn't need a corresponding endScope(),
     // because we end Compiler completely when we reach end of function body
 
-    emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
-
-    // Upvalues that the closure captured
-    for (int i = 0; i < function->upvalueCount; i++)
+    if (function->upvalueCount == 0)
     {
-        emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
-        emitByte(compiler.upvalues[i].index);
+        emitBytes(OP_CONSTANT, makeConstant(OBJ_VAL(function)));
+    }
+    else
+    { // Only wrap function in closure if it needs upvalues
+        emitBytes(OP_CLOSURE, makeConstant(OBJ_VAL(function)));
+
+        // Upvalues that the closure captured
+        for (int i = 0; i < function->upvalueCount; i++)
+        {
+            emitByte(compiler.upvalues[i].index);
+            emitByte(compiler.upvalues[i].hop);
+        }
     }
 }
 
