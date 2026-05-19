@@ -1106,6 +1106,16 @@ static void declaration()
         synchronize();
 }
 
+static void deleteFieldStatement()
+{
+    expression(); // instance
+
+    // Overwrite the latest OP_GET_PROPERTY instruction with OP_DELETE_PROPERTY
+    overwriteChunk(currentChunk(), OP_DELETE_PROPERTY, 1); // skip over name
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after 'deleted statement.");
+}
+
 static void statement()
 {
     if (match(TOKEN_PRINT))
@@ -1127,6 +1137,10 @@ static void statement()
     else if (match(TOKEN_WHILE))
     {
         whileStatement();
+    }
+    else if (match(TOKEN_DELETE))
+    {
+        deleteFieldStatement();
     }
     else if (match(TOKEN_LEFT_BRACE))
     {

@@ -414,6 +414,26 @@ static InterpretResult run()
             push(value); // setter is an expression
             break;
         }
+        case OP_DELETE_PROPERTY:
+        {
+            if (!IS_INSTANCE(peek(0)))
+            {
+                runtimeError("Only instances have properties.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjInstance *instance = AS_INSTANCE(peek(0));
+            ObjString *name = READ_STRING();
+
+            if (!tableDelete(&instance->fields, name))
+            {
+                runtimeError("Undefined property '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            pop(); // instance
+            break;
+        }
         case OP_EQUAL:
         {
             Value b = pop();

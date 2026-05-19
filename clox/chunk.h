@@ -21,6 +21,7 @@ typedef enum
     OP_SET_UPVALUE,
     OP_GET_PROPERTY,
     OP_SET_PROPERTY,
+    OP_DELETE_PROPERTY,
     OP_EQUAL,
     OP_GREATER,
     OP_LESS,
@@ -54,6 +55,7 @@ typedef struct
 void initChunk(Chunk *chunk);
 void freeChunk(Chunk *chunk);
 void writeChunk(Chunk *chunk, uint8_t byte, int line);
+void overwriteChunk(Chunk *chunk, uint8_t byte, int distance);
 int addConstant(Chunk *chunk, Value value);
 
 #endif

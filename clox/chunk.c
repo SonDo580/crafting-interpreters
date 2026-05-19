@@ -38,6 +38,12 @@ void writeChunk(Chunk *chunk, uint8_t byte, int line)
     chunk->count++;
 }
 
+// Overwrite a byte at distance from last written byte
+void overwriteChunk(Chunk *chunk, uint8_t byte, int distance)
+{
+    chunk->code[chunk->count - 1 - distance] = byte;
+}
+
 // Return the index where the constant was appended
 int addConstant(Chunk *chunk, Value value)
 {
