@@ -142,6 +142,13 @@ static bool callValue(Value callee, int argCount)
     {
         switch (OBJ_TYPE(callee))
         {
+        case OBJ_CLASS:
+        { // constructor call
+            ObjClass *klass = AS_CLASS(callee);
+            // Replace class slot with new instance
+            vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+            return true;
+        }
         case OBJ_CLOSURE:
             return call(AS_CLOSURE(callee), argCount);
         case OBJ_NATIVE:
@@ -292,9 +299,11 @@ static InterpretResult run()
         switch (instruction = READ_BYTE())
         {
         case OP_CONSTANT:
+        {
             Value constant = READ_CONSTANT();
             push(constant);
             break;
+        }
         case OP_NIL:
             push(NIL_VAL);
             break;
@@ -322,7 +331,6 @@ static InterpretResult run()
         }
         case OP_GET_GLOBAL:
         {
-
             ObjString *name = READ_STRING();
             Value value;
             if (!tableGet(&vm.globals, name, &value))
@@ -369,11 +377,50 @@ static InterpretResult run()
             // don't pop (assignment is an expression)
             break;
         }
+        case OP_GET_PROPERTY:
+        {
+            if (!IS_INSTANCE(peek(0)))
+            {
+                runtimeError("Only instances have properties.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjInstance *instance = AS_INSTANCE(peek(0));
+            ObjString *name = READ_STRING();
+
+            Value value;
+            if (tableGet(&instance->fields, name, &value))
+            {
+                pop(); // instance
+                push(value);
+                break;
+            }
+
+            runtimeError("Undefined property '%s'.", name->chars);
+            return INTERPRET_RUNTIME_ERROR;
+        }
+        case OP_SET_PROPERTY:
+        {
+            if (!IS_INSTANCE(peek(1)))
+            {
+                runtimeError("Only instances have properties.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjInstance *instance = AS_INSTANCE(peek(1));
+            tableSet(&instance->fields, READ_STRING(), peek(0));
+            Value value = pop();
+            pop();       // instance
+            push(value); // setter is an expression
+            break;
+        }
         case OP_EQUAL:
+        {
             Value b = pop();
             Value a = pop();
             push(BOOL_VAL(valuesEqual(a, b)));
             break;
+        }
         case OP_GREATER:
             BINARY_OP(BOOL_VAL, >);
             break;
@@ -381,6 +428,7 @@ static InterpretResult run()
             BINARY_OP(BOOL_VAL, <);
             break;
         case OP_ADD:
+        {
             if (IS_STRING(peek(0)) && IS_STRING(peek(1)))
             {
                 concatenate();
@@ -397,6 +445,7 @@ static InterpretResult run()
                 return INTERPRET_RUNTIME_ERROR;
             }
             break;
+        }
         case OP_SUBTRACT:
             BINARY_OP(NUMBER_VAL, -);
             break;
@@ -457,8 +506,8 @@ static InterpretResult run()
                 return INTERPRET_RUNTIME_ERROR;
             }
 
-            // if callValue() is successful, there will be a new CallFrame
-            // (native function calls don't create new CallFrame)
+            // if callValue() is successful, there may be a new CallFrame
+            // (native/constructor calls don't create new CallFrame)
             frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
             break;
         }
@@ -492,6 +541,7 @@ static InterpretResult run()
             pop();
             break;
         case OP_RETURN:
+        {
             Value result = pop();        // save returned value
             closeUpvalues(frame->slots); // close all open upvalues owned by the returning function
 
@@ -505,6 +555,10 @@ static InterpretResult run()
             vm.stackTop = frame->slots;            // discard the called function's stack window
             push(result);                          // push returned value to top of stack
             frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
+            break;
+        }
+        case OP_CLASS:
+            push(OBJ_VAL(newClass(READ_STRING())));
             break;
         }
     }

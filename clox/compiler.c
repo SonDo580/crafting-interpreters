@@ -209,14 +209,14 @@ static void emitReturn()
 
 static uint8_t makeConstant(Value value)
 {
-    int constantIndex = addConstant(currentChunk(), value);
-    if (constantIndex > UINT8_MAX)
+    int constant = addConstant(currentChunk(), value);
+    if (constant > UINT8_MAX)
     {
         error("Too many constants in 1 chunk.");
         return 0;
     }
 
-    return (uint8_t)constantIndex;
+    return (uint8_t)constant;
 }
 
 static void emitConstant(Value value)
@@ -547,6 +547,22 @@ static void call(bool canAssign)
     emitBytes(OP_CALL, argCount);
 }
 
+static void dot(bool canAssign)
+{
+    consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+    uint8_t name = identifierConstant(&parser.previous);
+
+    if (canAssign && match(TOKEN_EQUAL))
+    {
+        expression();
+        emitBytes(OP_SET_PROPERTY, name);
+    }
+    else
+    {
+        emitBytes(OP_GET_PROPERTY, name);
+    }
+}
+
 static void literal(bool canAssign)
 {
     switch (parser.previous.type)
@@ -626,15 +642,13 @@ static void namedVariable(Token name, bool canAssign)
         setOp = OP_SET_GLOBAL;
     }
 
-    // Look for and consume the '=' only if
-    // currently in the context of a low-precedence expression
     if (canAssign && match(TOKEN_EQUAL))
-    { // setter or assignment
+    { // assignment
         expression();
         emitBytes(setOp, (uint8_t)arg);
     }
     else
-    { // getter or variable access
+    { // variable access
         emitBytes(getOp, (uint8_t)arg);
     }
 }
@@ -676,7 +690,7 @@ ParseRule rules[] = {
     [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PREC_NONE},
-    [TOKEN_DOT] = {NULL, NULL, PREC_NONE},
+    [TOKEN_DOT] = {NULL, dot, PREC_CALL},
     [TOKEN_MINUS] = {unary, binary, PREC_TERM},
     [TOKEN_PLUS] = {NULL, binary, PREC_TERM},
     [TOKEN_SEMICOLON] = {NULL, NULL, PREC_NONE},
@@ -737,7 +751,7 @@ static void parsePrecedence(Precedence precedence)
     }
 
     if (canAssign && match(TOKEN_EQUAL))
-    {
+    { // no rules to consume the '=' now
         error("Invalid assignment target.");
         // Example: a * b = c * d
     }
@@ -837,6 +851,19 @@ static void function(FunctionType type)
         emitByte(compiler.upvalues[i].isLocal ? 1 : 0);
         emitByte(compiler.upvalues[i].index);
     }
+}
+
+static void classDeclaration()
+{
+    consume(TOKEN_IDENTIFIER, "Expect class name.");
+    uint8_t nameConstant = identifierConstant(&parser.previous);
+    declareVariable();
+
+    emitBytes(OP_CLASS, nameConstant);
+    defineVariable(nameConstant); // -> body can reference the containing class
+
+    consume(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
 
 static void funDeclaration()
@@ -1058,7 +1085,11 @@ static void synchronize()
 
 static void declaration()
 {
-    if (match(TOKEN_FUN))
+    if (match(TOKEN_CLASS))
+    {
+        classDeclaration();
+    }
+    else if (match(TOKEN_FUN))
     {
         funDeclaration();
     }

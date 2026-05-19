@@ -19,6 +19,7 @@ void freeTable(Table *table)
 {
     FREE_ARRAY(Entry, table->entries, table->capacity);
     initTable(table);
+    // the table doesn't own the entries, only the array
 }
 
 // Use linear probing to find bucket for 'key'.
