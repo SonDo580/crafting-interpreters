@@ -92,6 +92,10 @@ int disassembleInstruction(Chunk *chunk, int offset)
         return constantInstruction("OP_GET_PROPERTY", chunk, offset);
     case OP_SET_PROPERTY:
         return constantInstruction("OP_SET_PROPERTY", chunk, offset);
+    case OP_GET_DYNAMIC_PROPERTY:
+        return simpleInstruction("OP_GET_DYNAMIC_PROPERTY", offset);
+    case OP_SET_DYNAMIC_PROPERTY:
+        return simpleInstruction("OP_SET_DYNAMIC_PROPERTY", offset);
     case OP_EQUAL:
         return simpleInstruction("OP_EQUAL", offset);
     case OP_GREATER:

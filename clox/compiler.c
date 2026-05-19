@@ -563,6 +563,22 @@ static void dot(bool canAssign)
     }
 }
 
+static void access(bool canAssign)
+{
+    expression(); // field expression
+    consume(TOKEN_RIGHT_SQUARE, "Expect ']' after field expression");
+
+    if (canAssign && match(TOKEN_EQUAL))
+    {
+        expression(); // assigned value
+        emitByte(OP_SET_DYNAMIC_PROPERTY);
+    }
+    else
+    {
+        emitByte(OP_GET_DYNAMIC_PROPERTY);
+    }
+}
+
 static void literal(bool canAssign)
 {
     switch (parser.previous.type)
@@ -689,6 +705,8 @@ ParseRule rules[] = {
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
     [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
     [TOKEN_RIGHT_BRACE] = {NULL, NULL, PREC_NONE},
+    [TOKEN_LEFT_SQUARE] = {NULL, access, PREC_CALL},
+    [TOKEN_RIGHT_SQUARE] = {NULL, NULL, PREC_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PREC_NONE},
     [TOKEN_DOT] = {NULL, dot, PREC_CALL},
     [TOKEN_MINUS] = {unary, binary, PREC_TERM},

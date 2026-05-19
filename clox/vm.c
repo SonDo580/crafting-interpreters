@@ -414,6 +414,56 @@ static InterpretResult run()
             push(value); // setter is an expression
             break;
         }
+        case OP_GET_DYNAMIC_PROPERTY:
+        {
+            if (!IS_INSTANCE(peek(1)))
+            {
+                runtimeError("Only instances have properties.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            if (!IS_STRING(peek(0))) {
+                runtimeError("Property name must be string.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjInstance *instance = AS_INSTANCE(peek(1));
+            ObjString *name = AS_STRING(peek(0));
+
+            Value value;
+            if (!tableGet(&instance->fields, name, &value))
+            {
+                runtimeError("Undefined property '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            pop(); // field name
+            pop(); // instance
+            push(value);
+            break;
+        }
+        case OP_SET_DYNAMIC_PROPERTY:
+        {
+            if (!IS_INSTANCE(peek(2)))
+            {
+                runtimeError("Only instances have properties.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            if (!IS_STRING(peek(1))) {
+                runtimeError("Property name must be string.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjInstance *instance = AS_INSTANCE(peek(2));
+            ObjString *name = AS_STRING(peek(1));
+            
+            tableSet(&instance->fields, name, peek(0));
+
+            Value value = pop(); // assigned value
+            pop();       // field name
+            pop();       // instance
+            push(value); // setter is an expression
+            break;
+        }
         case OP_EQUAL:
         {
             Value b = pop();
