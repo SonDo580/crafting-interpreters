@@ -39,6 +39,7 @@ typedef enum
     OP_CLOSE_UPVALUE,
     OP_RETURN,
     OP_CLASS,
+    OP_METHOD,
 } OpCode;
 
 // A dynamic array to store instructions

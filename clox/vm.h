@@ -27,6 +27,7 @@ typedef struct
     Value *stackTop;          // 1 past last item
     Table globals;            // global variables
     Table strings;            // all (unique) strings created
+    ObjString *initString;    // name of init() method
     ObjUpvalue *openUpvalues; // all open upvalues (still on stack)
 
     size_t bytesAllocated;

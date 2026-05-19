@@ -85,6 +85,9 @@ void initVM()
     initTable(&vm.globals);
     initTable(&vm.strings);
 
+    vm.initString = NULL; // required since copyString() may trigger GC, which access this field
+    vm.initString = copyString("init", 4);
+
     defineNative("clock", clockNative);
 }
 
@@ -92,6 +95,7 @@ void freeVM()
 {
     freeTable(&vm.globals);
     freeTable(&vm.strings);
+    vm.initString = NULL; // the string object will be freed by freeObjects() 
     freeObjects();
 }
 
@@ -132,7 +136,8 @@ static bool call(ObjClosure *closure, int argCount)
     frame->closure = closure;
     frame->ip = closure->function->chunk.code;
     frame->slots = (vm.stackTop - 1) - argCount;
-    // frame->slots points to current function, parameters start from slot 1
+    // local slot 0 is callee or method receiver,
+    // parameters start from slot 1
     return true;
 }
 
@@ -142,11 +147,33 @@ static bool callValue(Value callee, int argCount)
     {
         switch (OBJ_TYPE(callee))
         {
+        case OBJ_BOUND_METHOD:
+        {
+            ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
+            // Put method receiver at local slot 0 of next frame
+            vm.stackTop[-1 - argCount] = bound->receiver;
+            return call(bound->method, argCount);
+        }
         case OBJ_CLASS:
         { // constructor call
             ObjClass *klass = AS_CLASS(callee);
+
             // Replace class slot with new instance
             vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+
+            // Call init() method if found
+            Value initializer;
+            if (tableGet(&klass->methods, vm.initString, &initializer))
+            {
+                // local slot 0 of next frame is new instance
+                return call(AS_CLOSURE(initializer), argCount);
+            }
+            else if (argCount != 0)
+            { // no init() method but provide arguments
+                runtimeError("Expect 0 arguments but got %d.", argCount);
+                return false;
+            }
+
             return true;
         }
         case OBJ_CLOSURE:
@@ -164,6 +191,21 @@ static bool callValue(Value callee, int argCount)
 
     runtimeError("Can only call functions and classes.");
     return false;
+}
+
+static bool bindMethod(ObjClass *klass, ObjString *name)
+{
+    Value method;
+    if (!tableGet(&klass->methods, name, &method))
+    {
+        runtimeError("Undefined property '%s'.", name->chars);
+        return false;
+    }
+
+    ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+    pop(); // instance
+    push(OBJ_VAL(bound));
+    return true;
 }
 
 // Create upvalue from local variable of closure's enclosing function;
@@ -215,6 +257,14 @@ static void closeUpvalues(Value *last)
         upvalue->location = &upvalue->closed; // point 'location' to 'closed' (get/set upvalue instructions use 'location')
         vm.openUpvalues = upvalue->next;      // remove from 'openUpvalues' linked-list
     }
+}
+
+static void defineMethod(ObjString *name)
+{
+    Value method = peek(0);
+    ObjClass *klass = AS_CLASS(peek(1));
+    tableSet(&klass->methods, name, method);
+    pop(); // method closure
 }
 
 static bool isFalsy(Value value)
@@ -396,8 +446,11 @@ static InterpretResult run()
                 break;
             }
 
-            runtimeError("Undefined property '%s'.", name->chars);
-            return INTERPRET_RUNTIME_ERROR;
+            if (!bindMethod(instance->klass, name))
+            {
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
         }
         case OP_SET_PROPERTY:
         {
@@ -507,7 +560,7 @@ static InterpretResult run()
             }
 
             // if callValue() is successful, there may be a new CallFrame
-            // (native/constructor calls don't create new CallFrame)
+            // (native function calls don't create new CallFrame)
             frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
             break;
         }
@@ -559,6 +612,9 @@ static InterpretResult run()
         }
         case OP_CLASS:
             push(OBJ_VAL(newClass(READ_STRING())));
+            break;
+        case OP_METHOD:
+            defineMethod(READ_STRING());
             break;
         }
     }

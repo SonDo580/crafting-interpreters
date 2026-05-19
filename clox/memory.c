@@ -102,10 +102,18 @@ static void blackenObject(Obj *object)
 
     switch (object->type)
     {
+    case OBJ_BOUND_METHOD:
+    {
+        ObjBoundMethod *bound = (ObjBoundMethod *)object;
+        markValue(bound->receiver);
+        markObject((Obj *)bound->method);
+        break;
+    }
     case OBJ_CLASS:
     {
         ObjClass *klass = (ObjClass *)object;
         markObject((Obj *)klass->name);
+        markTable(&klass->methods);
         break;
     }
     case OBJ_CLOSURE:
@@ -156,9 +164,18 @@ void freeObject(Obj *object)
 
     switch (object->type)
     {
+    case OBJ_BOUND_METHOD:
+        FREE(ObjBoundMethod, object);
+        break;
+        // the bound method doesn't own its references
     case OBJ_CLASS:
+    {
+        ObjClass *klass = (ObjClass *)object;
+        freeTable(&klass->methods);
         FREE(ObjClass, object);
         break;
+        // class owns methods table but not table entries
+    }
     case OBJ_CLOSURE:
     {
         ObjClosure *closure = (ObjClosure *)object;
@@ -230,6 +247,9 @@ static void markRoots()
 
     // any values the compiler directly accesses
     markCompilerRoots();
+
+    // name of init() method
+    markObject((Obj *)vm.initString);
 }
 
 // Traverse to mark all objects reachable from roots
