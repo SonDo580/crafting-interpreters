@@ -626,6 +626,20 @@ static InterpretResult run()
             frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
             break;
         }
+        case OP_SUPER_INVOKE:
+        {
+            ObjString *method = READ_STRING();
+            int argCount = READ_BYTE();
+            // stack: ... | subclass's instance | ...args | superclass |
+            ObjClass *superclass = AS_CLASS(pop());
+            // Invoke superclass's method with subclass's instance as receiver
+            if (!invokeFromClass(superclass, method, argCount))
+            {
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            frame = &vm.frames[vm.frameCount - 1]; // update run()'s cached pointer to current frame
+            break;
+        }
         case OP_CLOSURE:
         {
             ObjFunction *function = AS_FUNCTION(READ_CONSTANT());
