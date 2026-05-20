@@ -504,6 +504,20 @@ static InterpretResult run()
             push(value); // setter is an expression
             break;
         }
+        case OP_GET_SUPER:
+        {
+            ObjString *name = READ_STRING();
+            ObjClass *superclass = AS_CLASS(pop());
+
+            // Bind superclass's method to subclass's instance (currently on top of stack)
+            // - correctly skips over any overriding methods in in-between subclasses
+            // - correctly includes methods inherited by superclass from its superclasses
+            if (!bindMethod(superclass, name))
+            {
+                return INTERPRET_RUNTIME_ERROR;
+            }
+            break;
+        }
         case OP_EQUAL:
         {
             Value b = pop();
@@ -661,6 +675,28 @@ static InterpretResult run()
         case OP_CLASS:
             push(OBJ_VAL(newClass(READ_STRING())));
             break;
+        case OP_INHERIT:
+        {
+            Value superclass = peek(1);
+            if (!IS_CLASS(superclass))
+            {
+                runtimeError("Superclass must be a class.");
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            ObjClass *subclass = AS_CLASS(peek(0));
+
+            // Copy all methods from superclass to subclass
+            // - lookup: don't have to traverse the inheritance chain.
+            // - constraint: can only be used because Lox classes are closed.
+            //   (after a class declaration finished executing, its set of methods is fixed)
+            // - override: OP_METHOD instructions are after OP_INHERIT
+            tableAddAll(&AS_CLASS(superclass)->methods,
+                        &subclass->methods);
+
+            pop(); // subclass
+            break;
+        }
         case OP_METHOD:
             defineMethod(READ_STRING());
             break;
