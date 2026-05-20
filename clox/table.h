@@ -15,7 +15,7 @@ typedef struct
 typedef struct
 {
     int count;
-    int capacity;
+    int capacity; // always 2^k (see GROW_CAPACITY)
     Entry *entries;
     // load_factor = count / capacity
 } Table;
