@@ -96,6 +96,7 @@ typedef struct
     Obj obj;
     ObjString *name;
     Table methods;
+    Value init; // init method
 } ObjClass;
 
 typedef struct
@@ -112,7 +113,7 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
-ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure* method);
+ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();

@@ -162,11 +162,10 @@ static bool callValue(Value callee, int argCount)
             vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
 
             // Call init() method if found
-            Value initializer;
-            if (tableGet(&klass->methods, vm.initString, &initializer))
+            if (!valuesEqual(klass->init, NIL_VAL))
             {
                 // local slot 0 of next frame is new instance
-                return call(AS_CLOSURE(initializer), argCount);
+                return call(AS_CLOSURE(klass->init), argCount);
             }
             else if (argCount != 0)
             { // no init() method but provide arguments
@@ -237,6 +236,7 @@ static bool bindMethod(ObjClass *klass, ObjString *name)
     {
         runtimeError("Undefined property '%s'.", name->chars);
         return false;
+        // don't allow creating bound method from init()
     }
 
     ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
@@ -300,7 +300,14 @@ static void defineMethod(ObjString *name)
 {
     Value method = peek(0);
     ObjClass *klass = AS_CLASS(peek(1));
-    tableSet(&klass->methods, name, method);
+    if (name->length == 4 && memcmp(name->chars, "init", 4) == 0)
+    { // init() method
+        klass->init = method;
+    }
+    else
+    {
+        tableSet(&klass->methods, name, method);
+    }
     pop(); // method closure
 }
 
