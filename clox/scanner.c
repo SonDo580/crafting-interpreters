@@ -252,6 +252,8 @@ Token scanToken()
 
     switch (c)
     {
+    case ':':
+        return makeToken(TOKEN_COLON);
     case '(':
         return makeToken(TOKEN_LEFT_PAREN);
     case ')':

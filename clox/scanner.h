@@ -4,6 +4,7 @@
 typedef enum
 {
     // Single-character tokens
+    TOKEN_COLON, // :
     TOKEN_LEFT_PAREN,
     TOKEN_RIGHT_PAREN,
     TOKEN_LEFT_BRACE,

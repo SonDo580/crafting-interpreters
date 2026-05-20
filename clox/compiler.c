@@ -583,16 +583,21 @@ static void dot(bool canAssign)
         expression();
         emitBytes(OP_SET_PROPERTY, name);
     }
-    else if (match(TOKEN_LEFT_PAREN))
-    {
-        uint8_t argCount = argumentList();
-        emitBytes(OP_INVOKE, name);
-        emitByte(argCount);
-    }
     else
     {
         emitBytes(OP_GET_PROPERTY, name);
     }
+}
+
+static void invoke(bool canAssign)
+{
+    consume(TOKEN_IDENTIFIER, "Expect method name after '.'.");
+    uint8_t name = identifierConstant(&parser.previous);
+
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+    uint8_t argCount = argumentList();
+    emitBytes(OP_INVOKE, name);
+    emitByte(argCount);
 }
 
 static void literal(bool canAssign)
@@ -728,6 +733,7 @@ static void unary(bool canAssign)
 //   followed by a token of that type
 // - the precedence of an infix expression that uses that token as operator
 ParseRule rules[] = {
+    [TOKEN_COLON] = {NULL, invoke, PREC_CALL},
     [TOKEN_LEFT_PAREN] = {grouping, call, PREC_CALL},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
     [TOKEN_LEFT_BRACE] = {NULL, NULL, PREC_NONE},
