@@ -208,7 +208,10 @@ void freeObject(Obj *object)
     case OBJ_STRING:
     {
         ObjString *string = (ObjString *)object;
-        FREE_ARRAY(char, string->chars, string->length + 1);
+        if (string->chars != NULL)
+        {
+            FREE_ARRAY(char, string->chars, string->length + 1);
+        }
         FREE(ObjString, object);
         break;
     }

@@ -89,8 +89,16 @@ static ObjString *allocateString(char *chars, int length,
 {
     ObjString *string = ALLOCATE_OBJ(ObjString, OBJ_STRING);
     string->length = length;
-    string->chars = chars;
     string->hash = hash;
+    if (length + 1 <= STR_BUF_SIZE)
+    {
+        memcpy(string->buf, chars, length);
+        string->buf[length] = '\0';
+    }
+    else
+    {
+        string->chars = chars;
+    }
 
     // Push onto stack temporarily and pop after added
     // (resizing string pool can trigger a GC)
@@ -123,7 +131,10 @@ ObjString *takeString(char *chars, int length)
     ObjString *interned = tableFindString(&vm.strings, chars, length, hash);
     if (interned != NULL)
     {
-        FREE_ARRAY(char, chars, length + 1);
+        if (length + 1 > STR_BUF_SIZE)
+        { // chars is dynamically allocated
+            FREE_ARRAY(char, chars, length + 1);
+        }
         return interned;
     }
 
@@ -139,6 +150,10 @@ ObjString *copyString(const char *chars, int length)
     if (interned != NULL)
         return interned;
 
+    if (length + 1 <= STR_BUF_SIZE)
+    {
+        return allocateString((char*)chars, length, hash);
+    }
     char *heapChars = ALLOCATE(char, length + 1);
     memcpy(heapChars, chars, length);
     heapChars[length] = '\0';

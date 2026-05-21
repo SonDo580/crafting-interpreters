@@ -211,7 +211,7 @@ ObjString *tableFindString(Table *table, const char *chars,
         }
         else if (entry->key->length == length &&
                  entry->key->hash == hash &&
-                 memcmp(entry->key->chars, chars, length) == 0)
+                 memcmp(stringToCString(entry->key), chars, length) == 0)
         {
             return entry->key; // found
         }

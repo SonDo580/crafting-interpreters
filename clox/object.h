@@ -6,6 +6,8 @@
 #include "table.h"
 #include "value.h"
 
+#define STR_BUF_SIZE 8
+
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
 #define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
@@ -23,7 +25,7 @@
 #define AS_INSTANCE(value) ((ObjInstance *)AS_OBJ(value))
 #define AS_NATIVE(value) (((ObjNative *)AS_OBJ(value))->function)
 #define AS_STRING(value) ((ObjString *)AS_OBJ(value))
-#define AS_CSTRING(value) (((ObjString *)AS_OBJ(value))->chars)
+#define AS_CSTRING(value) valueToCString(value)
 
 /* Struct inheritance:
 - All struct types representing different object types must have their 1st field be an Obj.
@@ -70,7 +72,8 @@ struct ObjString
 {
     Obj obj;
     int length;
-    char *chars;
+    char *chars;   // NULL for small string
+    char buf[STR_BUF_SIZE];   // store small string (length + 1 <= STR_BUF_SIZE)
     uint32_t hash; // calculate once (Lox strings are immutable)
 };
 
@@ -112,7 +115,7 @@ typedef struct
     ObjClosure *method;
 } ObjBoundMethod;
 
-ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure* method);
+ObjBoundMethod *newBoundMethod(Value receiver, ObjClosure *method);
 ObjClass *newClass(ObjString *name);
 ObjClosure *newClosure(ObjFunction *function);
 ObjFunction *newFunction();
@@ -131,6 +134,17 @@ static inline bool isObjType(Value value, ObjType type)
     // - If a macro uses a parameter more than once,
     //   that expression gets evaluated multiple times
     //   (bad if expresion has side effects).
+}
+
+static inline char *stringToCString(ObjString *string)
+{
+    return string->chars == NULL ? string->buf : string->chars;
+}
+
+static inline char *valueToCString(Value value)
+{ // Check object is of type tring before calling this function
+    ObjString *string = (ObjString *)AS_OBJ(value);
+    return stringToCString(string);
 }
 
 #endif

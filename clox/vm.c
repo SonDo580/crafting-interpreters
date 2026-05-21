@@ -199,7 +199,7 @@ static bool invokeFromClass(
     Value method;
     if (!tableGet(&klass->methods, name, &method))
     {
-        runtimeError("Undefined property '%s'.", name->chars);
+        runtimeError("Undefined property '%s'.", stringToCString(name));
         return false;
     }
     // local slot 0 of next frame is method receiver
@@ -235,7 +235,7 @@ static bool bindMethod(ObjClass *klass, ObjString *name)
     Value method;
     if (!tableGet(&klass->methods, name, &method))
     {
-        runtimeError("Undefined property '%s'.", name->chars);
+        runtimeError("Undefined property '%s'.", stringToCString(name));
         return false;
     }
 
@@ -316,15 +316,27 @@ static void concatenate()
     ObjString *b = AS_STRING(peek(0));
     ObjString *a = AS_STRING(peek(1));
 
+    ObjString *result;
     int length = a->length + b->length;
-    char *chars = ALLOCATE(char, length + 1);
-    memcpy(chars, a->chars, a->length);
-    memcpy(chars + a->length, b->chars, b->length);
-    chars[length] = '\0';
+    if (length + 1 <= STR_BUF_SIZE)
+    {
+        char buf[STR_BUF_SIZE];
+        memcpy(buf, a->buf, a->length);
+        memcpy(buf + a->length, b->buf, b->length);
+        buf[length] = '\0';
+        result = takeString(buf, length);
+    }
+    else
+    {
+        char *chars = ALLOCATE(char, length + 1);
+        memcpy(chars, stringToCString(a), a->length);
+        memcpy(chars + a->length, stringToCString(b), b->length);
+        chars[length] = '\0';
+        result = takeString(chars, length);
+    }
 
-    ObjString *result = takeString(chars, length);
-    pop();
-    pop();
+    pop(); // pop b
+    pop(); // pop a
     push(OBJ_VAL(result));
 }
 
@@ -422,7 +434,7 @@ static InterpretResult run()
             Value value;
             if (!tableGet(&vm.globals, name, &value))
             {
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError("Undefined variable '%s'.", stringToCString(name));
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(value);
@@ -445,7 +457,7 @@ static InterpretResult run()
             { // variable hasn't been defined -> runtime error
                 // Must delete the added entry since REPL keeps running after runtime error
                 tableDelete(&vm.globals, name);
-                runtimeError("Undefined variable '%s'.", name->chars);
+                runtimeError("Undefined variable '%s'.", stringToCString(name));
                 return INTERPRET_RUNTIME_ERROR;
             }
             // don't pop (assignment is an expression)
