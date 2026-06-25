@@ -8,6 +8,9 @@
 
 Checkout `challenge...` branches
 
+- ... -> 13: extend JLox
+- 14 -> ...: extend CLox
+
 ## JLox
 
 ### Compile
@@ -28,9 +31,8 @@ java jlox.lox.Lox <script_path>
 
 ### Debug (VSCode)
 
-- `launch.json`
-
 ```json
+// launch.json
 {
   "version": "0.2.0",
   "configurations": [
@@ -39,27 +41,7 @@ java jlox.lox.Lox <script_path>
       "name": "Debug JLox",
       "request": "launch",
       "mainClass": "jlox.lox.Lox",
-      "args": "", // use Lox program path to execute code from file
-      "preLaunchTask": "build-jlox" // comment out if don't need rebuild
-    }
-  ]
-}
-```
-
-- `tasks.json`
-
-```json
-{
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "build-jlox",
-      "type": "shell",
-      "command": "bash build_jlox.sh",
-      "group": {
-        "kind": "build"
-      },
-      "problemMatcher": []
+      "args": "" // use Lox program path to execute code from file
     }
   ]
 }
